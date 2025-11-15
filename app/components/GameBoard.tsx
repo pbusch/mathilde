@@ -122,7 +122,7 @@ export default function GameBoard() {
 
       <div className="absolute bottom-0 left-0 right-0 z-10 p-8">
         <div className="text-center text-white drop-shadow-lg">
-          <p className="text-lg">Click on Islands 1 or 2 to start your adventure!</p>
+          <p className="text-lg">Click on Islands 1, 2, or 3 to start your adventure!</p>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export default function GameBoard() {
             key={index}
             position={pos}
             islandNumber={index + 1}
-            isAccessible={index === 0 || index === 1} // First two islands are accessible
+            isAccessible={index === 0 || index === 1 || index === 2} // First three islands are accessible
             onClick={() => handleIslandClick(index + 1)}
           />
         ))}
