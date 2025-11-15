@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import FractionPizzaGame from '@/app/components/games/FractionPizzaGame';
 
 interface IslandPageProps {
   params: Promise<{ id: string }>;
@@ -7,6 +8,12 @@ interface IslandPageProps {
 export default async function IslandPage({ params }: IslandPageProps) {
   const { id } = await params;
 
+  // Island 1: Fraction Pizza Game
+  if (id === '1') {
+    return <FractionPizzaGame />;
+  }
+
+  // Placeholder for other islands
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center p-8">
       <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-2xl w-full">
