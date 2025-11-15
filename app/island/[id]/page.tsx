@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import FractionPizzaGame from '@/app/components/games/FractionPizzaGame';
+import BubblePopGame from '@/app/components/games/BubblePopGame';
 
 interface IslandPageProps {
   params: Promise<{ id: string }>;
@@ -11,6 +12,11 @@ export default async function IslandPage({ params }: IslandPageProps) {
   // Island 1: Fraction Pizza Game
   if (id === '1') {
     return <FractionPizzaGame />;
+  }
+
+  // Island 2: Bubble Pop Math Game
+  if (id === '2') {
+    return <BubblePopGame />;
   }
 
   // Placeholder for other islands
