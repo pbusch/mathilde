@@ -2,6 +2,8 @@ import Link from 'next/link';
 import FractionPizzaGame from '@/app/components/games/FractionPizzaGame';
 import BubblePopGame from '@/app/components/games/BubblePopGame';
 import NumberTargetGame from '@/app/components/games/NumberTargetGame';
+import PatternWizardGame from '@/app/components/games/PatternWizardGame';
+import ShapeQuestGame from '@/app/components/games/ShapeQuestGame';
 
 interface IslandPageProps {
   params: Promise<{ id: string }>;
@@ -23,6 +25,16 @@ export default async function IslandPage({ params }: IslandPageProps) {
   // Island 3: Number Target Game (Mathador-style)
   if (id === '3') {
     return <NumberTargetGame />;
+  }
+
+  // Island 4: Pattern Wizard Game
+  if (id === '4') {
+    return <PatternWizardGame />;
+  }
+
+  // Island 5: Shape Quest Game
+  if (id === '5') {
+    return <ShapeQuestGame />;
   }
 
   // Placeholder for other islands

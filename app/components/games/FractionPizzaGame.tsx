@@ -129,32 +129,49 @@ const FractionPizzaGame = () => {
 
   if (gameCompleted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 flex items-center justify-center p-8">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-2xl w-full text-center">
-          <div className="text-8xl mb-6">🏆</div>
-          <h1 className="text-5xl font-bold text-gray-800 mb-6">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-8 relative overflow-hidden">
+        {/* Animated stars background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute bg-white rounded-full animate-pulse"
+              style={{
+                width: Math.random() * 3 + 1 + 'px',
+                height: Math.random() * 3 + 1 + 'px',
+                left: Math.random() * 100 + '%',
+                top: Math.random() * 100 + '%',
+                animationDelay: Math.random() * 3 + 's',
+                animationDuration: Math.random() * 2 + 2 + 's',
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-12 max-w-2xl w-full text-center border border-white/20 shadow-2xl">
+          <div className="text-8xl mb-6 animate-bounce">🏆</div>
+          <h1 className="text-5xl font-bold text-purple-300 mb-6">
             Congratulations!
           </h1>
-          <p className="text-2xl text-gray-600 mb-4">
+          <p className="text-2xl text-purple-200 mb-4">
             You&apos;ve mastered Fraction Pizza!
           </p>
-          <div className="bg-purple-100 rounded-2xl p-6 mb-8">
-            <p className="text-4xl font-bold text-purple-600">
+          <div className="bg-purple-600/50 rounded-2xl p-6 mb-8 border-2 border-purple-400">
+            <p className="text-4xl font-bold text-yellow-300">
               Final Score: {score} points
             </p>
           </div>
           <div className="flex justify-center gap-4">
             <button
               onClick={resetGame}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-semibold shadow-lg transition-colors text-lg"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105"
             >
-              🔄 Play Again
+              Play Again 🔄
             </button>
             <Link
               href="/"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-full font-semibold shadow-lg transition-colors text-lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105 inline-block"
             >
-              🏝️ Back to Islands
+              Return to Islands 🏝️
             </Link>
           </div>
         </div>
@@ -163,9 +180,27 @@ const FractionPizzaGame = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 relative overflow-hidden">
+      {/* Animated stars background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(50)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute bg-white rounded-full animate-pulse"
+            style={{
+              width: Math.random() * 3 + 1 + 'px',
+              height: Math.random() * 3 + 1 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 3 + 's',
+              animationDuration: Math.random() * 2 + 2 + 's',
+            }}
+          />
+        ))}
+      </div>
+
       {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50">
+        <div className="absolute inset-0 pointer-events-none z-50">
           {confettiItems.map((item) => (
             <div
               key={item.id}
@@ -177,49 +212,63 @@ const FractionPizzaGame = () => {
                 animationDuration: `${item.duration}s`,
               }}
             >
-              {item.emoji}
+              ✨
             </div>
           ))}
         </div>
       )}
 
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-4xl w-full">
+      <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800">🍕 Fraction Pizza Party</h1>
-            <p className="text-gray-600 mt-2">Help serve the right amount of pizza!</p>
+            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 mb-2 drop-shadow-lg">
+              🍕 Fraction Pizza Party
+            </h1>
+            <p className="text-purple-200 text-lg">Help serve the right amount of pizza!</p>
           </div>
-          <div className="text-right">
-            <div className="bg-purple-100 rounded-2xl px-6 py-3 mb-2">
-              <p className="text-sm text-purple-600 font-semibold">Level</p>
-              <p className="text-3xl font-bold text-purple-600">{level}/10</p>
+          <Link
+            href="/"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+          >
+            ← Back to Islands
+          </Link>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex justify-between items-center mb-8 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-purple-200 text-sm">Level</p>
+              <p className="text-4xl font-bold text-yellow-300">{level}/10</p>
             </div>
-            <div className="bg-yellow-100 rounded-2xl px-6 py-3">
-              <p className="text-sm text-yellow-600 font-semibold">Score</p>
-              <p className="text-2xl font-bold text-yellow-600">{score}</p>
+            <div>
+              <p className="text-purple-200 text-sm">Score</p>
+              <p className="text-4xl font-bold text-green-300">{score}</p>
             </div>
           </div>
         </div>
 
-        {/* Challenge */}
-        <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 mb-8">
-          <p className="text-2xl font-semibold text-gray-800 mb-2">
-            {currentChallenge.customerName} wants:
-          </p>
-          <p className="text-6xl font-bold text-purple-600 text-center my-4">
-            {currentChallenge.numerator}/{currentChallenge.denominator}
-          </p>
-          <p className="text-lg text-gray-600 text-center">
-            of a pizza
-          </p>
-        </div>
+        {/* Main Game Area */}
+        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl max-w-4xl mx-auto">
+          {/* Challenge */}
+          <div className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-2xl p-6 mb-8 border-2 border-yellow-400/50">
+            <p className="text-2xl font-semibold text-yellow-300 mb-2 text-center">
+              {currentChallenge.customerName} wants:
+            </p>
+            <p className="text-6xl font-bold text-white text-center my-4">
+              {currentChallenge.numerator}/{currentChallenge.denominator}
+            </p>
+            <p className="text-lg text-purple-200 text-center">
+              of a pizza
+            </p>
+          </div>
 
-        {/* Pizza Display */}
-        <div className="mb-8">
-          <p className="text-xl font-semibold text-gray-700 mb-4 text-center">
-            Click the pizza slices to select {currentChallenge.numerator}/{currentChallenge.denominator}:
-          </p>
+          {/* Pizza Display */}
+          <div className="mb-8">
+            <p className="text-xl font-semibold text-purple-200 mb-4 text-center">
+              Click the pizza slices to select {currentChallenge.numerator}/{currentChallenge.denominator}:
+            </p>
           <div className="flex justify-center">
             <div className="relative w-80 h-80">
               <svg viewBox="0 0 200 200" className="w-full h-full">
@@ -281,53 +330,48 @@ const FractionPizzaGame = () => {
 
           {/* Selection Display */}
           <div className="text-center mt-6">
-            <p className="text-xl font-semibold text-gray-700">
-              Selected: <span className="text-3xl font-bold text-red-500">{selectedSlices}/{currentChallenge.denominator}</span>
+            <p className="text-xl font-semibold text-purple-200">
+              Selected: <span className="text-3xl font-bold text-yellow-300">{selectedSlices}/{currentChallenge.denominator}</span>
             </p>
           </div>
         </div>
 
         {/* Feedback */}
         {feedback && (
-          <div className={`text-center p-4 rounded-2xl mb-6 ${
+          <div className={`text-center text-2xl font-bold mb-6 ${
             feedback.includes('Perfect')
-              ? 'bg-green-100 text-green-700'
-              : 'bg-orange-100 text-orange-700'
+              ? 'text-green-300 animate-bounce'
+              : 'text-red-300'
           }`}>
-            <p className="text-xl font-semibold">{feedback}</p>
+            <p>{feedback}</p>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-4 mb-6">
           <button
             onClick={handleReset}
             disabled={selectedSlices === 0 || !!feedback}
-            className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-semibold shadow-lg transition-colors"
+            className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
           >
-            🔄 Reset
+            Reset 🔄
           </button>
           <button
             onClick={handleSubmit}
             disabled={selectedSlices === 0 || !!feedback}
-            className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-full font-semibold shadow-lg transition-colors text-lg"
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-green-300 disabled:to-emerald-400 disabled:cursor-not-allowed text-white px-8 py-3 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105"
           >
-            ✓ Serve Pizza
+            Serve Pizza ✓
           </button>
-          <Link
-            href="/"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-semibold shadow-lg transition-colors"
-          >
-            ← Exit
-          </Link>
         </div>
 
         {/* Instructions */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-xl">
-          <p className="text-sm text-gray-600 text-center">
+        <div className="bg-blue-900/50 rounded-xl p-4 border-2 border-blue-400/50">
+          <p className="text-purple-200 text-center">
             💡 <strong>How to play:</strong> Click on the pizza slices to select the fraction shown, then click &quot;Serve Pizza&quot; to check your answer!
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

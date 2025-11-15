@@ -266,6 +266,101 @@ function Ocean() {
   );
 }
 
+// Terrain backdrop bordering the sea
+function TerrainBackdrop() {
+  // Create terrain segments around the perimeter
+  const segments = [];
+  const terrainHeight = 3;
+  const terrainDepth = 4;
+  const distance = 20;
+
+  // Back terrain (mountains in the distance)
+  segments.push(
+    <group key="back" position={[0, 0, -distance]}>
+      {/* Main mountain range */}
+      {[-8, -4, 0, 4, 8].map((x, i) => (
+        <mesh key={i} position={[x, terrainHeight / 2 - 0.5, 0]}>
+          <coneGeometry args={[3 + Math.random(), terrainHeight + Math.random() * 2, 8]} />
+          <meshStandardMaterial
+            color="#8B7355"
+            roughness={0.9}
+            flatShading={true}
+          />
+        </mesh>
+      ))}
+      {/* Lower hills */}
+      {[-10, -6, -2, 2, 6, 10].map((x, i) => (
+        <mesh key={`hill-${i}`} position={[x, 0.8, 1]}>
+          <coneGeometry args={[2 + Math.random() * 0.5, 1.5 + Math.random(), 8]} />
+          <meshStandardMaterial
+            color="#A0826D"
+            roughness={0.85}
+            flatShading={true}
+          />
+        </mesh>
+      ))}
+      {/* Grassy base */}
+      <mesh position={[0, -0.3, 2]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[40, 1.5, terrainDepth]} />
+        <meshStandardMaterial
+          color="#6B8E23"
+          roughness={0.8}
+        />
+      </mesh>
+    </group>
+  );
+
+  // Left terrain
+  segments.push(
+    <group key="left" position={[-distance, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {[-6, -3, 0, 3, 6].map((z, i) => (
+        <mesh key={i} position={[z, terrainHeight / 2 - 0.5, 0]}>
+          <coneGeometry args={[2.5 + Math.random() * 0.5, terrainHeight + Math.random(), 8]} />
+          <meshStandardMaterial
+            color="#8B7355"
+            roughness={0.9}
+            flatShading={true}
+          />
+        </mesh>
+      ))}
+      {/* Grassy base */}
+      <mesh position={[0, -0.3, 2]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[30, 1.5, terrainDepth]} />
+        <meshStandardMaterial
+          color="#6B8E23"
+          roughness={0.8}
+        />
+      </mesh>
+    </group>
+  );
+
+  // Right terrain
+  segments.push(
+    <group key="right" position={[distance, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+      {[-6, -3, 0, 3, 6].map((z, i) => (
+        <mesh key={i} position={[z, terrainHeight / 2 - 0.5, 0]}>
+          <coneGeometry args={[2.5 + Math.random() * 0.5, terrainHeight + Math.random(), 8]} />
+          <meshStandardMaterial
+            color="#8B7355"
+            roughness={0.9}
+            flatShading={true}
+          />
+        </mesh>
+      ))}
+      {/* Grassy base */}
+      <mesh position={[0, -0.3, 2]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[30, 1.5, terrainDepth]} />
+        <meshStandardMaterial
+          color="#6B8E23"
+          roughness={0.8}
+        />
+      </mesh>
+    </group>
+  );
+
+  return <group>{segments}</group>;
+}
+
 // Sky gradient background
 function Sky() {
   return (
@@ -378,6 +473,9 @@ export default function GameBoard() {
         {/* Background */}
         <Sky />
 
+        {/* Terrain backdrop */}
+        <TerrainBackdrop />
+
         {/* Floating clouds */}
         <Cloud position={[-15, 8, -10]} />
         <Cloud position={[12, 10, -12]} />
@@ -394,7 +492,7 @@ export default function GameBoard() {
             key={index}
             position={pos}
             islandNumber={index + 1}
-            isAccessible={index === 0 || index === 1 || index === 2} // First three islands are accessible
+            isAccessible={true} // All islands are accessible
             onClick={() => handleIslandClick(index + 1)}
           />
         ))}

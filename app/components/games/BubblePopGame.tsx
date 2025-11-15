@@ -208,32 +208,49 @@ const BubblePopGame = () => {
 
   if (gameCompleted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-500 flex items-center justify-center p-8">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-2xl w-full text-center">
-          <div className="text-8xl mb-6">🏆</div>
-          <h1 className="text-5xl font-bold text-gray-800 mb-6">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-8 relative overflow-hidden">
+        {/* Animated stars background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute bg-white rounded-full animate-pulse"
+              style={{
+                width: Math.random() * 3 + 1 + 'px',
+                height: Math.random() * 3 + 1 + 'px',
+                left: Math.random() * 100 + '%',
+                top: Math.random() * 100 + '%',
+                animationDelay: Math.random() * 3 + 's',
+                animationDuration: Math.random() * 2 + 2 + 's',
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-12 max-w-2xl w-full text-center border border-white/20 shadow-2xl">
+          <div className="text-8xl mb-6 animate-bounce">🏆</div>
+          <h1 className="text-5xl font-bold text-purple-300 mb-6">
             Bubble Master!
           </h1>
-          <p className="text-2xl text-gray-600 mb-4">
+          <p className="text-2xl text-purple-200 mb-4">
             You&apos;ve completed all levels!
           </p>
-          <div className="bg-blue-100 rounded-2xl p-6 mb-8">
-            <p className="text-4xl font-bold text-blue-600">
+          <div className="bg-purple-600/50 rounded-2xl p-6 mb-8 border-2 border-purple-400">
+            <p className="text-4xl font-bold text-yellow-300">
               Final Score: {score} points
             </p>
           </div>
           <div className="flex justify-center gap-4">
             <button
               onClick={resetGame}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-4 rounded-full font-semibold shadow-lg transition-colors text-lg"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105"
             >
-              🔄 Play Again
+              Try Again 🔄
             </button>
             <Link
               href="/"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-full font-semibold shadow-lg transition-colors text-lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105 inline-block"
             >
-              🏝️ Back to Islands
+              Return to Islands 🏝️
             </Link>
           </div>
         </div>
@@ -242,10 +259,28 @@ const BubblePopGame = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-300 via-blue-400 to-purple-500 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 relative overflow-hidden">
+      {/* Animated stars background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(50)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute bg-white rounded-full animate-pulse"
+            style={{
+              width: Math.random() * 3 + 1 + 'px',
+              height: Math.random() * 3 + 1 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 3 + 's',
+              animationDuration: Math.random() * 2 + 2 + 's',
+            }}
+          />
+        ))}
+      </div>
+
       {/* Celebration stars */}
       {showCelebration && (
-        <div className="fixed inset-0 pointer-events-none z-50">
+        <div className="absolute inset-0 pointer-events-none z-50">
           {celebrationStars.map((star) => (
             <div
               key={star.id}
@@ -257,43 +292,55 @@ const BubblePopGame = () => {
                 animationDuration: `${star.duration}s`,
               }}
             >
-              ⭐
+              ✨
             </div>
           ))}
         </div>
       )}
 
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-6xl w-full">
+      <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800">🫧 Bubble Pop Math</h1>
-            <p className="text-gray-600 mt-2">Find two bubbles that add up to the target!</p>
+            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 mb-2 drop-shadow-lg">
+              🫧 Bubble Pop Math
+            </h1>
+            <p className="text-purple-200 text-lg">Find two bubbles that add up to the target!</p>
           </div>
-          <div className="text-right">
-            <div className="bg-blue-100 rounded-2xl px-6 py-3 mb-2">
-              <p className="text-sm text-blue-600 font-semibold">Level</p>
-              <p className="text-3xl font-bold text-blue-600">{level}/10</p>
+          <Link
+            href="/"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+          >
+            ← Back to Islands
+          </Link>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex justify-between items-center mb-8 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-purple-200 text-sm">Level</p>
+              <p className="text-4xl font-bold text-yellow-300">{level}/10</p>
             </div>
-            <div className="bg-yellow-100 rounded-2xl px-6 py-3">
-              <p className="text-sm text-yellow-600 font-semibold">Score</p>
-              <p className="text-2xl font-bold text-yellow-600">{score}</p>
+            <div>
+              <p className="text-purple-200 text-sm">Score</p>
+              <p className="text-4xl font-bold text-green-300">{score}</p>
             </div>
           </div>
         </div>
 
         {/* Target Display */}
-        <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
-          <p className="text-xl font-semibold text-gray-800 text-center mb-2">
+        <div className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-2xl p-6 mb-8 border-2 border-yellow-400/50 max-w-4xl mx-auto">
+          <p className="text-xl font-semibold text-yellow-300 text-center mb-2">
             🎯 Find two bubbles that add up to:
           </p>
-          <p className="text-7xl font-bold text-purple-600 text-center">
+          <p className="text-7xl font-bold text-white text-center">
             {currentChallenge.target}
           </p>
         </div>
 
         {/* Bubble Area */}
-        <div className="relative bg-gradient-to-b from-blue-50 to-cyan-50 rounded-2xl p-4 mb-6 h-96 overflow-hidden border-4 border-blue-200">
+        <div className="relative bg-gradient-to-b from-blue-900/30 to-purple-900/30 rounded-2xl p-4 mb-8 h-96 overflow-hidden border-4 border-purple-400/30 max-w-4xl mx-auto backdrop-blur-sm">
           {currentChallenge.bubbles.map((bubble) => {
             const isPopped = poppedBubbles.includes(bubble.id);
             const isSelected = selectedBubbles.includes(bubble.id);
@@ -342,29 +389,24 @@ const BubblePopGame = () => {
         {/* Feedback */}
         {feedback && (
           <div
-            className={`text-center p-4 rounded-2xl mb-6 ${
+            className={`text-center text-2xl font-bold mb-6 max-w-4xl mx-auto ${
               feedback.includes('Perfect')
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                ? 'text-green-300 animate-bounce'
+                : 'text-red-300'
             }`}
           >
-            <p className="text-xl font-semibold">{feedback}</p>
+            <p>{feedback}</p>
           </div>
         )}
 
         {/* Instructions and Exit */}
-        <div className="flex justify-between items-center">
-          <div className="p-4 bg-blue-50 rounded-xl flex-1 mr-4">
-            <p className="text-sm text-gray-600 text-center">
-              💡 <strong>How to play:</strong> Click two bubbles whose numbers add up to the target number. The bubbles float upward, so catch them quickly!
-            </p>
-          </div>
-          <Link
-            href="/"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-semibold shadow-lg transition-colors"
-          >
-            ← Exit
-          </Link>
+        <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+          <h3 className="text-2xl font-bold text-yellow-300 mb-4 text-center">
+            ✨ How to Play ✨
+          </h3>
+          <p className="text-purple-200 text-lg text-center">
+            💡 Click two bubbles whose numbers add up to the target number. The bubbles float upward, so catch them quickly!
+          </p>
         </div>
       </div>
     </div>
