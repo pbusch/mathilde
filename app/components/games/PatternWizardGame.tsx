@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface PatternChallenge {
   sequence: (number | null)[];
@@ -119,6 +120,7 @@ const generatePattern = (level: number): PatternChallenge => {
 };
 
 export default function PatternWizardGame() {
+  const router = useRouter();
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [challenge, setChallenge] = useState<PatternChallenge | null>(null);
@@ -129,6 +131,8 @@ export default function PatternWizardGame() {
   const [gameOver, setGameOver] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [gameWon, setGameWon] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
 
   useEffect(() => {
     startNewChallenge();
@@ -147,6 +151,40 @@ export default function PatternWizardGame() {
       ...prev,
       [index]: value,
     }));
+  };
+
+  const completeIsland = async (finalScore: number) => {
+    setSavingProgress(true);
+    try {
+      const response = await fetch('/api/progress/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          islandId: 1,  // Pattern Wizard is on Island 1
+          score: finalScore 
+        }),
+      });
+
+      if (response.ok) {
+        setGameWon(true);
+        setFeedback('🎉 Island Complete! Returning to the map... 🎉');
+        
+        // Redirect to gameboard after celebration
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+      } else {
+        console.error('Failed to save progress');
+        // Still show celebration even if save failed
+        setGameWon(true);
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      // Still show celebration even if save failed
+      setGameWon(true);
+    } finally {
+      setSavingProgress(false);
+    }
   };
 
   const checkAnswers = () => {
@@ -177,7 +215,9 @@ export default function PatternWizardGame() {
         if (level < 12) {
           setLevel(prev => prev + 1);
         } else {
-          startNewChallenge();
+          // Player completed all 12 levels! Mark island as complete
+          const finalScore = score + points;
+          completeIsland(finalScore);
         }
       }, 2000);
     } else {
@@ -293,7 +333,26 @@ export default function PatternWizardGame() {
         </div>
 
         {/* Game Area */}
-        {!gameOver ? (
+        {gameWon ? (
+          /* Victory Screen */
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-12 border border-white/20 shadow-2xl max-w-2xl mx-auto text-center">
+            <div className="text-8xl mb-6 animate-bounce">🏆</div>
+            <h2 className="text-5xl font-bold text-yellow-300 mb-4">Island Complete!</h2>
+            <p className="text-3xl text-green-300 mb-4">Final Score: {score}</p>
+            <p className="text-2xl text-purple-300 mb-4">You've mastered all patterns!</p>
+            <p className="text-xl text-purple-200 mb-8">
+              {savingProgress ? 'Saving your progress... ✨' : 'The next island awaits! 🎉'}
+            </p>
+            <div className="flex justify-center gap-4">
+              <Link
+                href="/"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105 inline-block"
+              >
+                Return to Islands 🏝️
+              </Link>
+            </div>
+          </div>
+        ) : !gameOver ? (
           <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl max-w-4xl mx-auto">
             {/* Pattern Rule - Hidden */}
             <div className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-2xl p-6 mb-8 border-2 border-yellow-400/50">

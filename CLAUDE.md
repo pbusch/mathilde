@@ -71,21 +71,86 @@ Each island consists of:
 
 - ✅ 3D gameboard with 5 islands along a curved path
 - ✅ Interactive camera controls (orbit, zoom)
-- ✅ Navigation to Island 1 and Help page
-- ✅ Placeholder pages for island games
-- ⏳ Individual math games (not yet implemented)
-- ⏳ User authentication/login (not yet implemented)
-- ⏳ Progress tracking (not yet implemented)
+- ✅ Navigation system with route protection
+- ✅ User authentication/login (Next.js + MariaDB + JWT)
+- ✅ Progress tracking (database-backed)
+- ✅ Progressive island unlocking based on completion
+- ✅ All 5 math games fully implemented:
+  - Island 1: Pattern Wizard (sequence pattern recognition)
+  - Island 2: Bubble Pop (addition practice)
+  - Island 3: Fraction Pizza (fraction visualization)
+  - Island 4: Number Target (multi-operation arithmetic)
+  - Island 5: Shape Quest (geometry identification)
+- ✅ Game completion integration with progress tracking
+- ✅ Progress update API endpoint (`/api/progress/update`)
 
-### Future Considerations
+### Authentication System
 
-When implementing math games:
-- Each island should have a unique math challenge
-- Games should be implemented in `/app/island/[id]/page.tsx`
-- Consider creating reusable game components in `/app/components/games/`
-- Island accessibility logic should be updated based on game completion
+The application uses a secure authentication system with:
 
-When adding authentication:
-- User progress should determine which islands are accessible
-- Update the `isAccessible` logic in GameBoard component
-- Store completion state for each island
+- **Database**: MariaDB with two main tables (`users`, `user_progress`)
+- **Password Security**: Bcrypt hashing (10 rounds)
+- **Session Management**: JWT tokens stored in HTTP-only cookies (7-day expiration)
+- **Route Protection**: Middleware automatically redirects unauthenticated users to login
+- **Progressive Unlocking**: Islands unlock sequentially as users complete previous ones
+
+#### Key Files:
+- `lib/db.ts` - MySQL connection pool
+- `lib/auth.ts` - Authentication utilities (JWT, user session, progress tracking)
+- `middleware.ts` - Route protection logic
+- `app/api/auth/*` - Authentication API endpoints (register, login, logout, me)
+- `app/api/progress/route.ts` - User progress API endpoint
+- `app/login/page.tsx` - Login page
+- `app/register/page.tsx` - Registration page
+- `schema.sql` - Database schema
+- `SETUP_AUTH.md` - Detailed setup instructions
+
+#### Environment Variables Required:
+```env
+DB_HOST=localhost
+DB_USER=mathilde
+DB_PASSWORD=mathilde
+DB_NAME=mathilde
+JWT_SECRET=<generated-secret>
+```
+
+### Math Games Implementation
+
+All five math games are fully implemented with:
+- Unique challenges for each island
+- Game components in `/app/components/games/`
+- Integration with progress tracking system
+- Automatic unlocking of next island upon completion
+
+#### Game Details:
+
+**Island 1: Pattern Wizard** - Pattern sequence recognition
+- Identify the next number in sequences
+- Multiple difficulty levels
+- Teaches arithmetic and geometric patterns
+
+**Island 2: Bubble Pop** - Addition practice
+- Pop bubbles to reach target sums
+- Timed challenges
+- Practices mental arithmetic
+
+**Island 3: Fraction Pizza** - Fraction visualization
+- Interactive pizza slice selection
+- Visual representation of fractions
+- Equivalent fraction recognition
+
+**Island 4: Number Target** - Multi-operation arithmetic
+- Use four operations to reach target numbers
+- Strategic thinking required
+- Combines addition, subtraction, multiplication, division
+
+**Island 5: Shape Quest** - Geometry identification
+- Identify 2D and 3D shapes
+- Learn shape properties
+- Visual geometry practice
+
+#### Progress Integration:
+- Each game calls `/api/progress/update` upon successful completion
+- Score and completion status are saved to database
+- GameBoard automatically reflects newly unlocked islands
+- Users can replay completed islands to improve scores

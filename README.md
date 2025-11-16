@@ -9,26 +9,53 @@ Mathilde features an immersive 3D gameboard where students navigate through five
 ## Features
 
 - **3D Interactive Gameboard**: Navigate a beautiful 3D scene with orbital camera controls
-- **Five Island Challenges**: Each island represents a unique math game (games to be implemented)
-- **Progressive Unlocking**: Students start with Island 1 and unlock subsequent islands
+- **Five Math Games**: Complete collection of engaging math challenges
+  - Pattern Wizard (sequences)
+  - Bubble Pop (addition)
+  - Fraction Pizza (fractions)
+  - Number Target (multi-operation)
+  - Shape Quest (geometry)
+- **User Authentication**: Secure login system with JWT sessions
+- **Progress Tracking**: Database-backed progress saves and island unlocking
+- **Progressive Unlocking**: Complete each island to unlock the next
 - **Responsive Design**: Works across different screen sizes
-- **No Login Required**: Simple access for classroom use (authentication can be added later)
 
 ## Getting Started
 
-Install dependencies:
+### Prerequisites
+
+- Node.js 18+
+- MariaDB/MySQL database
+
+### Setup
+
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-Run the development server:
+2. Set up the database (see `schema.sql`)
+
+3. Create `.env.local` with:
+
+```env
+DB_HOST=localhost
+DB_USER=mathilde
+DB_PASSWORD=your_password
+DB_NAME=mathilde
+JWT_SECRET=your_secret_key
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the gameboard.
+5. Open [http://localhost:3000](http://localhost:3000)
+
+See `SETUP_AUTH.md` for detailed authentication setup instructions.
 
 ## Tech Stack
 
@@ -42,17 +69,25 @@ Open [http://localhost:3000](http://localhost:3000) to see the gameboard.
 
 - `/app/page.tsx` - Main gameboard page
 - `/app/components/GameBoard.tsx` - 3D gameboard component
+- `/app/components/games/` - All five math game components
 - `/app/island/[id]/page.tsx` - Individual island game pages
-- `/app/help/page.tsx` - Help and instructions
+- `/app/login/page.tsx` - Login page
+- `/app/register/page.tsx` - Registration page
+- `/app/api/auth/` - Authentication API routes
+- `/app/api/progress/` - Progress tracking API
+- `/lib/auth.ts` - Authentication utilities
+- `/lib/db.ts` - Database connection
+- `/middleware.ts` - Route protection
 
 ## Current Status
 
 - ✅ 3D gameboard with 5 islands
 - ✅ Interactive camera controls
-- ✅ Navigation system
-- ⏳ Individual math games (not yet implemented)
-- ⏳ User authentication (not yet implemented)
-- ⏳ Progress tracking (not yet implemented)
+- ✅ Navigation system with route protection
+- ✅ All 5 math games implemented
+- ✅ User authentication (MariaDB + JWT)
+- ✅ Progress tracking and island unlocking
+- ✅ Teacher accounts and student management
 
 ## Development
 

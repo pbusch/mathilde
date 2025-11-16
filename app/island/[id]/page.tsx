@@ -12,9 +12,9 @@ interface IslandPageProps {
 export default async function IslandPage({ params }: IslandPageProps) {
   const { id } = await params;
 
-  // Island 1: Fraction Pizza Game
+  // Island 1: Pattern Wizard Game
   if (id === '1') {
-    return <FractionPizzaGame />;
+    return <PatternWizardGame />;
   }
 
   // Island 2: Bubble Pop Math Game
@@ -22,14 +22,14 @@ export default async function IslandPage({ params }: IslandPageProps) {
     return <BubblePopGame />;
   }
 
-  // Island 3: Number Target Game (Mathador-style)
+  // Island 3: Fraction Pizza Game
   if (id === '3') {
-    return <NumberTargetGame />;
+    return <FractionPizzaGame />;
   }
 
-  // Island 4: Pattern Wizard Game
+  // Island 4: Number Target Game (Mathador-style)
   if (id === '4') {
-    return <PatternWizardGame />;
+    return <NumberTargetGame />;
   }
 
   // Island 5: Shape Quest Game

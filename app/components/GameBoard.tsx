@@ -3,7 +3,7 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useRouter } from 'next/navigation';
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
 interface IslandProps {
@@ -367,7 +367,7 @@ function Sky() {
     <mesh>
       <sphereGeometry args={[40, 32, 32]} />
       <meshBasicMaterial
-        color="#87CEEB"
+        color="#3C2886"
         side={THREE.BackSide}
       />
     </mesh>
@@ -396,6 +396,38 @@ function Cloud({ position }: { position: [number, number, number] }) {
 
 export default function GameBoard() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [progress, setProgress] = useState<{ [key: number]: { completed: boolean; score: number } }>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProgress();
+  }, []);
+
+  const fetchProgress = async () => {
+    try {
+      const response = await fetch('/api/progress');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setProgress(data.progress);
+      }
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   const islandPositions: [number, number, number][] = [
     [-8, 0, -2],
@@ -409,20 +441,45 @@ export default function GameBoard() {
     router.push(`/island/${islandNumber}`);
   };
 
+  // Determine which islands are accessible based on progress
+  const isIslandAccessible = (islandNumber: number) => {
+    // First island is always accessible
+    if (islandNumber === 1) return true;
+    
+    // Other islands are accessible if the previous one is completed
+    const previousIsland = islandNumber - 1;
+    return progress[previousIsland]?.completed || false;
+  };
+
   return (
     <div className="w-full h-screen relative bg-gradient-to-b from-sky-300 via-sky-200 to-blue-100">
       {/* UI Overlay */}
       <div className="absolute top-0 left-0 right-0 z-10 p-8">
         <div className="flex justify-between items-center">
-          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg">
-            Math Adventure Islands
-          </h1>
-          <button
-            onClick={() => router.push('/help')}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
-          >
-            Help
-          </button>
+          <div>
+            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 drop-shadow-lg">
+              Math Adventure Islands
+            </h1>
+            {user && (
+              <p className="text-lg font-semibold text-purple-700 mt-2">
+                Welcome, {user.username}! {user.isTeacher && '👨‍🏫'}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={() => router.push('/help')}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+            >
+              Help
+            </button>
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -492,7 +549,7 @@ export default function GameBoard() {
             key={index}
             position={pos}
             islandNumber={index + 1}
-            isAccessible={true} // All islands are accessible
+            isAccessible={isIslandAccessible(index + 1)}
             onClick={() => handleIslandClick(index + 1)}
           />
         ))}

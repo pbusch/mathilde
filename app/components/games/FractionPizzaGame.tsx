@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Challenge {
   customerName: string;
@@ -51,6 +52,7 @@ const generateChallenge = (currentLevel: number): Challenge => {
 };
 
 const FractionPizzaGame = () => {
+  const router = useRouter();
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [selectedSlices, setSelectedSlices] = useState(0);
@@ -59,6 +61,7 @@ const FractionPizzaGame = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [confettiItems] = useState(() =>
     [...Array(50)].map((_, i) => ({
       id: i,
@@ -69,6 +72,31 @@ const FractionPizzaGame = () => {
       emoji: ['🎉', '⭐', '🌟', '✨', '🎊'][Math.floor(Math.random() * 5)],
     }))
   );
+
+  const completeIsland = async (finalScore: number) => {
+    setSavingProgress(true);
+    try {
+      const response = await fetch('/api/progress/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          islandId: 3,  // Fraction Pizza is on Island 3
+          score: finalScore 
+        }),
+      });
+
+      if (response.ok) {
+        setFeedback('🎉 Island Complete! Returning to the map... 🎉');
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   const handleSliceClick = (sliceIndex: number) => {
     if (feedback || gameCompleted) return;
@@ -92,6 +120,7 @@ const FractionPizzaGame = () => {
       setTimeout(() => {
         if (level >= 10) {
           setGameCompleted(true);
+          completeIsland(score + points);
         } else {
           const nextLevel = level + 1;
           setLevel(nextLevel);
@@ -149,17 +178,12 @@ const FractionPizzaGame = () => {
         </div>
         <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-12 max-w-2xl w-full text-center border border-white/20 shadow-2xl">
           <div className="text-8xl mb-6 animate-bounce">🏆</div>
-          <h1 className="text-5xl font-bold text-purple-300 mb-6">
-            Congratulations!
-          </h1>
-          <p className="text-2xl text-purple-200 mb-4">
-            You&apos;ve mastered Fraction Pizza!
+          <h2 className="text-5xl font-bold text-yellow-300 mb-4">Island Complete!</h2>
+          <p className="text-3xl text-purple-200 mb-4">Final Score: {score}</p>
+          <p className="text-2xl text-purple-300 mb-4">You&apos;ve mastered fractions!</p>
+          <p className="text-xl text-purple-200 mb-8">
+            {savingProgress ? 'Saving your progress... ✨' : 'The next island awaits! 🎉'}
           </p>
-          <div className="bg-purple-600/50 rounded-2xl p-6 mb-8 border-2 border-purple-400">
-            <p className="text-4xl font-bold text-yellow-300">
-              Final Score: {score} points
-            </p>
-          </div>
           <div className="flex justify-center gap-4">
             <button
               onClick={resetGame}

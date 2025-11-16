@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Bubble {
   id: number;
@@ -94,6 +95,7 @@ const generateChallenge = (level: number): Challenge => {
 };
 
 const BubblePopGame = () => {
+  const router = useRouter();
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentChallenge, setCurrentChallenge] = useState<Challenge>(() => generateChallenge(1));
@@ -103,6 +105,7 @@ const BubblePopGame = () => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [celebrationStars] = useState(() =>
     [...Array(30)].map((_, i) => ({
       id: i,
@@ -112,6 +115,31 @@ const BubblePopGame = () => {
       duration: 0.5 + Math.random() * 0.5,
     }))
   );
+
+  const completeIsland = async (finalScore: number) => {
+    setSavingProgress(true);
+    try {
+      const response = await fetch('/api/progress/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          islandId: 2,  // Bubble Pop is on Island 2
+          score: finalScore 
+        }),
+      });
+
+      if (response.ok) {
+        setFeedback('🎉 Island Complete! Returning to the map... 🎉');
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   // Animate bubbles floating
   useEffect(() => {
@@ -171,8 +199,9 @@ const BubblePopGame = () => {
       setShowCelebration(true);
 
       setTimeout(() => {
-        if (level >= 10) {
+        if (level >= 3) {
           setGameCompleted(true);
+          completeIsland(score + points);
         } else {
           const nextLevel = level + 1;
           setLevel(nextLevel);
@@ -228,17 +257,16 @@ const BubblePopGame = () => {
         </div>
         <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-3xl p-12 max-w-2xl w-full text-center border border-white/20 shadow-2xl">
           <div className="text-8xl mb-6 animate-bounce">🏆</div>
-          <h1 className="text-5xl font-bold text-purple-300 mb-6">
-            Bubble Master!
+          <h1 className="text-5xl font-bold text-yellow-300 mb-4">
+            Island Complete!
           </h1>
-          <p className="text-2xl text-purple-200 mb-4">
-            You&apos;ve completed all levels!
+          <p className="text-3xl text-purple-200 mb-4">Final Score: {score}</p>
+          <p className="text-2xl text-purple-300 mb-4">
+            You&apos;ve mastered bubble math!
           </p>
-          <div className="bg-purple-600/50 rounded-2xl p-6 mb-8 border-2 border-purple-400">
-            <p className="text-4xl font-bold text-yellow-300">
-              Final Score: {score} points
-            </p>
-          </div>
+          <p className="text-xl text-purple-200 mb-8">
+            {savingProgress ? 'Saving your progress... ✨' : 'The next island awaits! 🎉'}
+          </p>
           <div className="flex justify-center gap-4">
             <button
               onClick={resetGame}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Shape {
   type: 'circle' | 'square' | 'triangle' | 'rectangle' | 'pentagon' | 'hexagon';
@@ -222,6 +223,7 @@ const ShapeRenderer = ({ shape }: { shape: Shape }) => {
 };
 
 export default function ShapeQuestGame() {
+  const router = useRouter();
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -233,6 +235,32 @@ export default function ShapeQuestGame() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [streak, setStreak] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [savingProgress, setSavingProgress] = useState(false);
+
+  const completeIsland = async (finalScore: number) => {
+    setSavingProgress(true);
+    try {
+      const response = await fetch('/api/progress/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          islandId: 5,  // Shape Quest is on Island 5
+          score: finalScore 
+        }),
+      });
+
+      if (response.ok) {
+        setFeedback('🎉 Island Complete! Returning to the map... 🎉');
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   useEffect(() => {
     startNewChallenge();
@@ -278,7 +306,10 @@ export default function ShapeQuestGame() {
         if (level < 15) {
           setLevel(prev => prev + 1);
         } else {
-          startNewChallenge();
+          // Player completed all 15 levels!
+          setGameOver(true);
+          setFeedback('🎉 Quest Complete! You are a Shape Master! 🎉');
+          completeIsland(score + points);
         }
       }, 2500);
     } else {
@@ -506,12 +537,12 @@ export default function ShapeQuestGame() {
           /* Game Over Screen */
           <div className="bg-white/10 backdrop-blur-md rounded-3xl p-12 border border-white/20 shadow-2xl max-w-2xl mx-auto text-center">
             <div className="text-8xl mb-6 animate-bounce">🏆</div>
-            <h2 className="text-5xl font-bold text-purple-300 mb-4">Quest Complete!</h2>
-            <p className="text-3xl text-purple-200 mb-2">Final Score: {score}</p>
-            <p className="text-2xl text-purple-300 mb-2">You reached Level {level}!</p>
-            {score === highScore && score > 0 && (
-              <p className="text-xl text-yellow-300 mb-6 animate-pulse">🌟 NEW HIGH SCORE! 🌟</p>
-            )}
+            <h2 className="text-5xl font-bold text-purple-300 mb-4">Island Complete!</h2>
+            <p className="text-3xl text-green-300 mb-4">Final Score: {score}</p>
+            <p className="text-2xl text-purple-200 mb-4">You&apos;ve mastered all shape challenges!</p>
+            <p className="text-xl text-purple-200 mb-8">
+              {savingProgress ? 'Saving your progress... ✨' : 'All islands conquered! 🎉'}
+            </p>
             <div className="flex justify-center gap-4 mt-8">
               <button
                 onClick={resetGame}
