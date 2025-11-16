@@ -53,6 +53,9 @@ const generateChallenge = (currentLevel: number): Challenge => {
 
 const FractionPizzaGame = () => {
   const router = useRouter();
+  const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
+    ? parseInt(process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL) 
+    : 10;
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [selectedSlices, setSelectedSlices] = useState(0);
@@ -118,7 +121,7 @@ const FractionPizzaGame = () => {
       setShowConfetti(true);
 
       setTimeout(() => {
-        if (level >= 10) {
+        if (level >= COMPLETION_LEVEL) {
           setGameCompleted(true);
           completeIsland(score + points);
         } else {

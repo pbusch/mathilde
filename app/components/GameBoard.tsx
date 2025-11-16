@@ -202,15 +202,19 @@ function Island({ position, islandNumber, isAccessible, onClick }: IslandProps) 
 // Enhanced path with bridge-like appearance
 function Path() {
   const points = [
-    new THREE.Vector3(-8, -0.1, -2),
-    new THREE.Vector3(-4, -0.05, -1),
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(4, -0.05, 1),
-    new THREE.Vector3(8, -0.1, 2),
+    new THREE.Vector3(-6, -0.1, 7),    // Island 1
+    new THREE.Vector3(-4.5, 0, 5.5),   // Curve point
+    new THREE.Vector3(-3, 0.1, 4),     // Island 2
+    new THREE.Vector3(-0.5, 0.05, 2.5),// Curve point
+    new THREE.Vector3(2, -0.05, 1),    // Island 3
+    new THREE.Vector3(3, 0.1, -0.5),   // Curve point
+    new THREE.Vector3(4, 0.2, -2),     // Island 4
+    new THREE.Vector3(2, 0.15, -3.5),  // Curve point
+    new THREE.Vector3(0, 0.05, -5),    // Island 5
   ];
 
   const curve = new THREE.CatmullRomCurve3(points);
-  const tubeGeometry = new THREE.TubeGeometry(curve, 64, 0.2, 16, false);
+  const tubeGeometry = new THREE.TubeGeometry(curve, 128, 0.2, 16, false);
 
   return (
     <group>
@@ -430,11 +434,11 @@ export default function GameBoard() {
   };
 
   const islandPositions: [number, number, number][] = [
-    [-8, 0, -2],
-    [-4, 0, -1],
-    [0, 0, 0],
-    [4, 0, 1],
-    [8, 0, 2],
+    [-6, 0, 7],     // Island 1: Bottom left front
+    [-3, 0.2, 4],   // Island 2: Curve up-right
+    [2, 0, 1],      // Island 3: Middle right
+    [4, 0.3, -2],   // Island 4: Top right
+    [0, 0.1, -5],   // Island 5: Top center back
   ];
 
   const handleIslandClick = (islandNumber: number) => {
@@ -467,6 +471,20 @@ export default function GameBoard() {
             )}
           </div>
           <div className="flex gap-4">
+            {user?.isTeacher && (
+              <button
+                onClick={() => router.push('/stats')}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+              >
+                📊 Stats
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/progress')}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+            >
+              Progress
+            </button>
             <button
               onClick={() => router.push('/help')}
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
@@ -493,7 +511,7 @@ export default function GameBoard() {
 
       {/* 3D Canvas */}
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 8, 14]} />
+        <PerspectiveCamera makeDefault position={[0, 8, 20]} />
         <OrbitControls
           enablePan={false}
           minDistance={10}

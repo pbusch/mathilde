@@ -96,6 +96,9 @@ const generateChallenge = (level: number): Challenge => {
 
 const BubblePopGame = () => {
   const router = useRouter();
+  const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
+    ? parseInt(process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL) 
+    : 3;
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentChallenge, setCurrentChallenge] = useState<Challenge>(() => generateChallenge(1));
@@ -199,7 +202,7 @@ const BubblePopGame = () => {
       setShowCelebration(true);
 
       setTimeout(() => {
-        if (level >= 3) {
+        if (level >= COMPLETION_LEVEL) {
           setGameCompleted(true);
           completeIsland(score + points);
         } else {

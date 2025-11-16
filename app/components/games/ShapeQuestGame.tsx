@@ -224,6 +224,9 @@ const ShapeRenderer = ({ shape }: { shape: Shape }) => {
 
 export default function ShapeQuestGame() {
   const router = useRouter();
+  const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
+    ? parseInt(process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL) 
+    : 15;
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -303,10 +306,10 @@ export default function ShapeQuestGame() {
       
       setTimeout(() => {
         setShowCelebration(false);
-        if (level < 15) {
+        if (level < COMPLETION_LEVEL) {
           setLevel(prev => prev + 1);
         } else {
-          // Player completed all 15 levels!
+          // Player completed all levels!
           setGameOver(true);
           setFeedback('🎉 Quest Complete! You are a Shape Master! 🎉');
           completeIsland(score + points);

@@ -45,6 +45,9 @@ DB_USER=mathilde
 DB_PASSWORD=your_password
 DB_NAME=mathilde
 JWT_SECRET=your_secret_key
+
+# Set this to a low number (e.g., 1 or 2) to quickly test game completion in development
+# NEXT_PUBLIC_GAME_COMPLETION_LEVEL=1
 ```
 
 4. Run the development server:

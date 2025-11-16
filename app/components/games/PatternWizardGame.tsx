@@ -121,6 +121,9 @@ const generatePattern = (level: number): PatternChallenge => {
 
 export default function PatternWizardGame() {
   const router = useRouter();
+  const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
+    ? parseInt(process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL) 
+    : 12;
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [challenge, setChallenge] = useState<PatternChallenge | null>(null);
@@ -212,10 +215,10 @@ export default function PatternWizardGame() {
       
       setTimeout(() => {
         setShowCelebration(false);
-        if (level < 12) {
+        if (level < COMPLETION_LEVEL) {
           setLevel(prev => prev + 1);
         } else {
-          // Player completed all 12 levels! Mark island as complete
+          // Player completed all levels! Mark island as complete
           const finalScore = score + points;
           completeIsland(finalScore);
         }

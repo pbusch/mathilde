@@ -44,6 +44,9 @@ const generateChallenge = (level: number): Challenge => {
 
 const NumberTargetGame = () => {
   const router = useRouter();
+  const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
+    ? parseInt(process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL) 
+    : 10;
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentChallenge, setCurrentChallenge] = useState<Challenge>(() => generateChallenge(1));
@@ -94,7 +97,7 @@ const NumberTargetGame = () => {
     }
   };
 
-  const performCalculation = (operation: Operation) => {
+  const handleNumberClick = (num: number) => {
     if (feedback) return;
 
     if (selectedNum1 === null) {
@@ -184,7 +187,7 @@ const NumberTargetGame = () => {
     setShowCelebration(true);
 
     setTimeout(() => {
-      if (level >= 10) {
+      if (level >= COMPLETION_LEVEL) {
         setGameCompleted(true);
         completeIsland(score + points);
       } else {
