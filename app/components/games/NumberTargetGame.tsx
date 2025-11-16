@@ -20,6 +20,13 @@ interface CalculationStep {
   result: number;
 }
 
+interface CalculationSlot {
+  num1: number | null;
+  operation: Operation | null;
+  num2: number | null;
+  result: number | null;
+}
+
 const generateChallenge = (level: number): Challenge => {
   let numbers: number[];
   let target: number;
@@ -54,8 +61,13 @@ const NumberTargetGame = () => {
   const [selectedNum1, setSelectedNum1] = useState<number | null>(null);
   const [selectedNum2, setSelectedNum2] = useState<number | null>(null);
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null);
-  const [calculationHistory, setCalculationHistory] = useState<CalculationStep[]>([]);
-  const [currentResult, setCurrentResult] = useState<number | null>(null);
+  const [calculationSlots, setCalculationSlots] = useState<CalculationSlot[]>([
+    { num1: null, operation: null, num2: null, result: null },
+    { num1: null, operation: null, num2: null, result: null },
+    { num1: null, operation: null, num2: null, result: null },
+    { num1: null, operation: null, num2: null, result: null },
+  ]);
+  const [currentSlotIndex, setCurrentSlotIndex] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [gameCompleted, setGameCompleted] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -138,6 +150,7 @@ const NumberTargetGame = () => {
 
   const handleCalculate = () => {
     if (selectedNum1 === null || selectedNum2 === null || selectedOperation === null) return;
+    if (currentSlotIndex >= calculationSlots.length) return;
 
     const result = calculateResult(selectedNum1, selectedNum2, selectedOperation);
 
@@ -147,14 +160,15 @@ const NumberTargetGame = () => {
       return;
     }
 
-    // Add to calculation history
-    const step: CalculationStep = {
+    // Update the current calculation slot
+    const newSlots = [...calculationSlots];
+    newSlots[currentSlotIndex] = {
       num1: selectedNum1,
-      num2: selectedNum2,
       operation: selectedOperation,
+      num2: selectedNum2,
       result,
     };
-    setCalculationHistory([...calculationHistory, step]);
+    setCalculationSlots(newSlots);
 
     // Remove used numbers and add result
     const newAvailable = availableNumbers.filter(
@@ -166,12 +180,14 @@ const NumberTargetGame = () => {
     );
     newAvailable.push(result);
     setAvailableNumbers(newAvailable);
-    setCurrentResult(result);
 
     // Reset selection
     setSelectedNum1(null);
     setSelectedNum2(null);
     setSelectedOperation(null);
+
+    // Move to next slot
+    setCurrentSlotIndex(currentSlotIndex + 1);
 
     // Check if target reached
     if (result === currentChallenge.target) {
@@ -181,7 +197,8 @@ const NumberTargetGame = () => {
 
   const checkWin = () => {
     setAttempts(attempts + 1);
-    const points = Math.max(200 - calculationHistory.length * 30, 100);
+    const stepsUsed = calculationSlots.filter(slot => slot.result !== null).length;
+    const points = Math.max(200 - stepsUsed * 30, 100);
     setScore(score + points);
     setFeedback(`🎉 Excellent! You reached ${currentChallenge.target}!`);
     setShowCelebration(true);
@@ -196,8 +213,13 @@ const NumberTargetGame = () => {
         setLevel(nextLevel);
         setCurrentChallenge(newChallenge);
         setAvailableNumbers(newChallenge.numbers);
-        setCalculationHistory([]);
-        setCurrentResult(null);
+        setCalculationSlots([
+          { num1: null, operation: null, num2: null, result: null },
+          { num1: null, operation: null, num2: null, result: null },
+          { num1: null, operation: null, num2: null, result: null },
+          { num1: null, operation: null, num2: null, result: null },
+        ]);
+        setCurrentSlotIndex(0);
         setSelectedNum1(null);
         setSelectedNum2(null);
         setSelectedOperation(null);
@@ -209,11 +231,8 @@ const NumberTargetGame = () => {
   };
 
   const handleSubmit = () => {
-    // Check if current result equals target
-    if (currentResult === currentChallenge.target) {
-      checkWin();
-    } else if (availableNumbers.includes(currentChallenge.target)) {
-      // Target is in available numbers
+    // Check if target is in available numbers
+    if (availableNumbers.includes(currentChallenge.target)) {
       checkWin();
     } else {
       setFeedback('❌ Not quite! Keep calculating to reach the target.');
@@ -223,8 +242,13 @@ const NumberTargetGame = () => {
 
   const handleReset = () => {
     setAvailableNumbers(currentChallenge.numbers);
-    setCalculationHistory([]);
-    setCurrentResult(null);
+    setCalculationSlots([
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+    ]);
+    setCurrentSlotIndex(0);
     setSelectedNum1(null);
     setSelectedNum2(null);
     setSelectedOperation(null);
@@ -237,8 +261,13 @@ const NumberTargetGame = () => {
     setScore(0);
     setCurrentChallenge(newChallenge);
     setAvailableNumbers(newChallenge.numbers);
-    setCalculationHistory([]);
-    setCurrentResult(null);
+    setCalculationSlots([
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+      { num1: null, operation: null, num2: null, result: null },
+    ]);
+    setCurrentSlotIndex(0);
     setSelectedNum1(null);
     setSelectedNum2(null);
     setSelectedOperation(null);
@@ -366,136 +395,212 @@ const NumberTargetGame = () => {
           </div>
         </div>
 
-        {/* Main Game Area */}
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl max-w-5xl mx-auto">
-          {/* Target Display */}
-          <div className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-2xl p-6 mb-6 border-2 border-yellow-400/50">
-            <p className="text-xl font-semibold text-yellow-300 text-center mb-2">
-              🎯 Reach this target number:
-            </p>
-            <p className="text-7xl font-bold text-white text-center">
-              {currentChallenge.target}
-            </p>
-          </div>
-
-          {/* Available Numbers */}
-          <div className="mb-6">
-            <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-              Available Numbers:
-            </p>
-            <div className="flex justify-center gap-3 flex-wrap">
-              {availableNumbers.map((num, idx) => (
-                <button
-                  key={`${num}-${idx}`}
-                  onClick={() => handleNumberClick(num)}
-                  disabled={!!feedback}
-                  className={`w-20 h-20 rounded-2xl font-bold text-2xl transition-all shadow-lg hover:scale-110 disabled:cursor-not-allowed ${
-                    selectedNum1 === num || selectedNum2 === num
-                      ? 'bg-gradient-to-br from-yellow-400 to-orange-400 text-white scale-110 ring-4 ring-yellow-300'
-                      : 'bg-gradient-to-br from-blue-400 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-600'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Operations */}
-          <div className="mb-6">
-            <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-              Choose an operation:
-            </p>
-            <div className="flex justify-center gap-3">
-              {operations.map((op) => (
-                <button
-                  key={op}
-                  onClick={() => handleOperationClick(op)}
-                  disabled={selectedNum1 === null || !!feedback}
-                  className={`w-16 h-16 rounded-xl font-bold text-3xl transition-all shadow-lg hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed ${
-                    selectedOperation === op
-                      ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white scale-110 ring-4 ring-green-300'
-                      : 'bg-gradient-to-br from-purple-400 to-pink-500 text-white hover:from-purple-500 hover:to-pink-600'
-                  }`}
-                >
-                  {op}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Current Calculation Display */}
-          {selectedNum1 !== null && (
-            <div className="bg-purple-900/50 rounded-2xl p-4 mb-6 border-2 border-purple-400/50">
-              <p className="text-center text-2xl font-bold text-white">
-                {selectedNum1}
-                {selectedOperation && ` ${selectedOperation}`}
-                {selectedNum2 !== null && ` ${selectedNum2}`}
-                {selectedNum1 !== null && selectedNum2 !== null && selectedOperation &&
-                  ` = ${calculateResult(selectedNum1, selectedNum2, selectedOperation) ?? '❌'}`}
-              </p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-3 mb-6">
-            <button
-              onClick={handleCalculate}
-              disabled={selectedNum1 === null || selectedNum2 === null || selectedOperation === null || !!feedback}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all text-lg transform hover:scale-105"
-            >
-              Calculate ➕
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={currentResult === null || !!feedback}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all text-lg transform hover:scale-105"
-            >
-              Submit ✓
-            </button>
-            <button
-              onClick={handleReset}
-              disabled={calculationHistory.length === 0 || !!feedback}
-              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
-            >
-              Reset 🔄
-            </button>
-          </div>
-
-          {/* Calculation History */}
-          {calculationHistory.length > 0 && (
-            <div className="mb-6">
-              <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-                Your Calculations:
-              </p>
-              <div className="bg-purple-900/50 rounded-2xl p-4 max-h-32 overflow-y-auto border-2 border-purple-400/50">
-                {calculationHistory.map((step, idx) => (
-                  <div key={idx} className="text-center text-lg text-purple-200 mb-2">
-                    {step.num1} {step.operation} {step.num2} = <span className="font-bold text-yellow-300">{step.result}</span>
+        {/* Main Game Area - Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          {/* Left Column - Rosace/Octagon with Numbers */}
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <div className="flex flex-col items-center justify-center min-h-[600px]">
+              {/* Octagonal Number Display */}
+              <div className="relative w-96 h-96 mb-8">
+                {/* Center Target */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                  <div className="bg-gradient-to-br from-yellow-400 to-orange-500 w-32 h-32 rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
+                    <span className="text-5xl font-bold text-white">{currentChallenge.target}</span>
                   </div>
-                ))}
+                </div>
+
+                {/* Octagonal segments with numbers */}
+                {availableNumbers.map((num, idx) => {
+                  const angle = (idx * 360) / availableNumbers.length - 90;
+                  const radius = 140;
+                  const x = Math.cos((angle * Math.PI) / 180) * radius;
+                  const y = Math.sin((angle * Math.PI) / 180) * radius;
+                  
+                  const isSelected = selectedNum1 === num || selectedNum2 === num;
+                  
+                  return (
+                    <button
+                      key={`${num}-${idx}`}
+                      onClick={() => handleNumberClick(num)}
+                      disabled={!!feedback}
+                      className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-xl font-bold text-2xl transition-all shadow-lg hover:scale-110 disabled:cursor-not-allowed ${
+                        isSelected
+                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400 text-white scale-110 ring-4 ring-yellow-300 z-20'
+                          : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
+                      }`}
+                      style={{
+                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                      }}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+
+                {/* Decorative octagon outline */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 400">
+                  <polygon
+                    points="200,40 280,90 330,170 330,230 280,310 200,360 120,310 70,230 70,170 120,90"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="3"
+                    strokeDasharray="10,5"
+                  />
+                </svg>
+              </div>
+
+              {/* Operation Buttons */}
+              <div className="flex gap-3 mb-6">
+                {operations.map((op, idx) => {
+                  const colors = [
+                    'from-cyan-400 to-blue-500',
+                    'from-green-400 to-emerald-500', 
+                    'from-pink-400 to-red-500',
+                    'from-yellow-400 to-orange-500'
+                  ];
+                  
+                  return (
+                    <button
+                      key={op}
+                      onClick={() => handleOperationClick(op)}
+                      disabled={selectedNum1 === null || !!feedback}
+                      className={`w-16 h-16 rounded-xl font-bold text-3xl transition-all shadow-lg hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed ${
+                        selectedOperation === op
+                          ? `bg-gradient-to-br ${colors[idx]} text-white scale-110 ring-4 ring-white`
+                          : `bg-gradient-to-br ${colors[idx]} text-white hover:scale-105`
+                      }`}
+                    >
+                      {op}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Current Selection Display */}
+              {selectedNum1 !== null && (
+                <div className="bg-purple-900/50 rounded-2xl p-4 mb-4 border-2 border-purple-400/50 w-full">
+                  <p className="text-center text-2xl font-bold text-white">
+                    {selectedNum1}
+                    {selectedOperation && ` ${selectedOperation}`}
+                    {selectedNum2 !== null && ` ${selectedNum2}`}
+                    {selectedNum1 !== null && selectedNum2 !== null && selectedOperation &&
+                      ` = ${calculateResult(selectedNum1, selectedNum2, selectedOperation) ?? '❌'}`}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCalculate}
+                  disabled={selectedNum1 === null || selectedNum2 === null || selectedOperation === null || !!feedback}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+                >
+                  Calculate
+                </button>
+                <button
+                  onClick={handleReset}
+                  disabled={currentSlotIndex === 0 || !!feedback}
+                  className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+                >
+                  Reset 🔄
+                </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Feedback */}
-          {feedback && (
-            <div className={`text-center text-2xl font-bold mb-6 ${
-                feedback.includes('Excellent') || feedback.includes('🎉')
-                  ? 'text-green-300 animate-bounce'
-                  : 'text-red-300'
-              }`}
-            >
-              <p>{feedback}</p>
+          {/* Right Column - Calculation Slots */}
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <h2 className="text-2xl font-bold text-purple-200 mb-6 text-center">Calculations</h2>
+            
+            <div className="space-y-6">
+              {calculationSlots.map((slot, idx) => (
+                <div 
+                  key={idx}
+                  className={`flex items-center justify-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                    idx === currentSlotIndex && !feedback
+                      ? 'bg-purple-600/30 border-purple-400 scale-105'
+                      : 'bg-purple-900/30 border-purple-600/50'
+                  }`}
+                >
+                  {/* First Number Diamond */}
+                  <div className="relative w-20 h-20">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 transform rotate-45 rounded-lg shadow-lg"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white z-10">
+                        {slot.num1 ?? '?'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Operation Circle */}
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg">
+                    <span className="text-2xl font-bold text-white">
+                      {slot.operation ?? '?'}
+                    </span>
+                  </div>
+
+                  {/* Second Number Diamond */}
+                  <div className="relative w-20 h-20">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 transform rotate-45 rounded-lg shadow-lg"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white z-10">
+                        {slot.num2 ?? '?'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Equals Sign */}
+                  <span className="text-3xl font-bold text-purple-300">=</span>
+
+                  {/* Result Diamond */}
+                  <div className="relative w-20 h-20">
+                    <div className={`absolute inset-0 transform rotate-45 rounded-lg shadow-lg ${
+                      slot.result !== null 
+                        ? 'bg-gradient-to-br from-green-400 to-emerald-500' 
+                        : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                    }`}></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white z-10">
+                        {slot.result ?? '?'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
 
-          {/* Instructions */}
-          <div className="bg-blue-900/50 rounded-xl p-4 border-2 border-blue-400/50">
-            <p className="text-purple-200 text-center">
-              💡 <strong>How to play:</strong> Select two numbers, choose an operation (+, -, ×, ÷), and click Calculate.
-              Keep combining numbers until you reach the target. Click Submit when you&apos;ve reached it!
-            </p>
+            {/* Submit Button */}
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={handleSubmit}
+                disabled={!availableNumbers.includes(currentChallenge.target) || !!feedback}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105"
+              >
+                Submit Answer ✓
+              </button>
+            </div>
+
+            {/* Feedback */}
+            {feedback && (
+              <div className={`text-center text-2xl font-bold mt-6 ${
+                  feedback.includes('Excellent') || feedback.includes('🎉')
+                    ? 'text-green-300 animate-bounce'
+                    : 'text-red-300'
+                }`}
+              >
+                <p>{feedback}</p>
+              </div>
+            )}
+
+            {/* Instructions */}
+            <div className="mt-8 bg-blue-900/50 rounded-xl p-4 border-2 border-blue-400/50">
+              <p className="text-purple-200 text-sm text-center">
+                💡 <strong>How to play:</strong> Click numbers from the rosace, choose an operation, and calculate. 
+                The result appears in the calculation slots and returns to the rosace. 
+                Reach the target number to win!
+              </p>
+            </div>
           </div>
         </div>
       </div>
