@@ -42,6 +42,16 @@ const generateChallenge = (level: number): Challenge => {
   return { numbers, target, usedNumbers: [] };
 };
 
+const getRosacePosition = (index: number, total: number) => {
+  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+  const radius = total <= 4 ? 32 : total <= 6 ? 38 : 44;
+
+  return {
+    left: `${50 + radius * Math.cos(angle)}%`,
+    top: `${50 + radius * Math.sin(angle)}%`,
+  };
+};
+
 const NumberTargetGame = () => {
   const router = useRouter();
   const COMPLETION_LEVEL = process.env.NEXT_PUBLIC_GAME_COMPLETION_LEVEL 
@@ -367,135 +377,136 @@ const NumberTargetGame = () => {
         </div>
 
         {/* Main Game Area */}
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl max-w-5xl mx-auto">
-          {/* Target Display */}
-          <div className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-2xl p-6 mb-6 border-2 border-yellow-400/50">
-            <p className="text-xl font-semibold text-yellow-300 text-center mb-2">
-              🎯 Reach this target number:
-            </p>
-            <p className="text-7xl font-bold text-white text-center">
-              {currentChallenge.target}
-            </p>
-          </div>
+        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,420px)_1fr]">
+            <div className="space-y-6">
+              <div className="relative aspect-square max-w-md mx-auto rounded-full border-4 border-white/30 bg-gradient-to-br from-indigo-900/80 to-purple-900/80 shadow-inner">
+                <div className="absolute inset-4 rounded-full border border-white/20" />
+                <div className="absolute inset-1/3 rounded-full border border-white/20" />
+                {availableNumbers.map((num, idx) => {
+                  const { left, top } = getRosacePosition(idx, availableNumbers.length);
+                  const isSelected = selectedNum1 === num || selectedNum2 === num;
 
-          {/* Available Numbers */}
-          <div className="mb-6">
-            <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-              Available Numbers:
-            </p>
-            <div className="flex justify-center gap-3 flex-wrap">
-              {availableNumbers.map((num, idx) => (
-                <button
-                  key={`${num}-${idx}`}
-                  onClick={() => handleNumberClick(num)}
-                  disabled={!!feedback}
-                  className={`w-20 h-20 rounded-2xl font-bold text-2xl transition-all shadow-lg hover:scale-110 disabled:cursor-not-allowed ${
-                    selectedNum1 === num || selectedNum2 === num
-                      ? 'bg-gradient-to-br from-yellow-400 to-orange-400 text-white scale-110 ring-4 ring-yellow-300'
-                      : 'bg-gradient-to-br from-blue-400 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-600'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Operations */}
-          <div className="mb-6">
-            <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-              Choose an operation:
-            </p>
-            <div className="flex justify-center gap-3">
-              {operations.map((op) => (
-                <button
-                  key={op}
-                  onClick={() => handleOperationClick(op)}
-                  disabled={selectedNum1 === null || !!feedback}
-                  className={`w-16 h-16 rounded-xl font-bold text-3xl transition-all shadow-lg hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed ${
-                    selectedOperation === op
-                      ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white scale-110 ring-4 ring-green-300'
-                      : 'bg-gradient-to-br from-purple-400 to-pink-500 text-white hover:from-purple-500 hover:to-pink-600'
-                  }`}
-                >
-                  {op}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Current Calculation Display */}
-          {selectedNum1 !== null && (
-            <div className="bg-purple-900/50 rounded-2xl p-4 mb-6 border-2 border-purple-400/50">
-              <p className="text-center text-2xl font-bold text-white">
-                {selectedNum1}
-                {selectedOperation && ` ${selectedOperation}`}
-                {selectedNum2 !== null && ` ${selectedNum2}`}
-                {selectedNum1 !== null && selectedNum2 !== null && selectedOperation &&
-                  ` = ${calculateResult(selectedNum1, selectedNum2, selectedOperation) ?? '❌'}`}
-              </p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-3 mb-6">
-            <button
-              onClick={handleCalculate}
-              disabled={selectedNum1 === null || selectedNum2 === null || selectedOperation === null || !!feedback}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all text-lg transform hover:scale-105"
-            >
-              Calculate ➕
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={currentResult === null || !!feedback}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all text-lg transform hover:scale-105"
-            >
-              Submit ✓
-            </button>
-            <button
-              onClick={handleReset}
-              disabled={calculationHistory.length === 0 || !!feedback}
-              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
-            >
-              Reset 🔄
-            </button>
-          </div>
-
-          {/* Calculation History */}
-          {calculationHistory.length > 0 && (
-            <div className="mb-6">
-              <p className="text-lg font-semibold text-purple-200 mb-3 text-center">
-                Your Calculations:
-              </p>
-              <div className="bg-purple-900/50 rounded-2xl p-4 max-h-32 overflow-y-auto border-2 border-purple-400/50">
-                {calculationHistory.map((step, idx) => (
-                  <div key={idx} className="text-center text-lg text-purple-200 mb-2">
-                    {step.num1} {step.operation} {step.num2} = <span className="font-bold text-yellow-300">{step.result}</span>
+                  return (
+                    <button
+                      key={`${num}-${idx}`}
+                      onClick={() => handleNumberClick(num)}
+                      disabled={!!feedback}
+                      className={`absolute w-16 h-16 md:w-20 md:h-20 rounded-2xl font-bold text-2xl flex items-center justify-center shadow-lg transition-all -translate-x-1/2 -translate-y-1/2 disabled:cursor-not-allowed ${
+                        isSelected
+                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400 text-white ring-4 ring-yellow-300 scale-110'
+                          : 'bg-gradient-to-br from-blue-400 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-600'
+                      }`}
+                      style={{ left, top }}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+                <div className="absolute inset-0 flex items-center justify-center text-center">
+                  <div className="w-36 h-36 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-pink-500/80 to-yellow-400/80 text-white flex flex-col items-center justify-center border-4 border-white/40 shadow-lg">
+                    <p className="text-sm uppercase tracking-widest text-white/80">Target</p>
+                    <p className="text-5xl font-black drop-shadow-lg">{currentChallenge.target}</p>
+                    <p className="text-xs text-white/80 mt-1">Mathador mode</p>
                   </div>
-                ))}
+                </div>
+              </div>
+
+              <div className="bg-purple-900/40 border border-purple-300/30 rounded-2xl p-4 text-center">
+                <p className="text-sm uppercase tracking-widest text-purple-200 mb-3">Choose your move</p>
+                <div className="flex justify-center flex-wrap gap-3">
+                  {operations.map((op) => (
+                    <button
+                      key={op}
+                      onClick={() => handleOperationClick(op)}
+                      disabled={selectedNum1 === null || !!feedback}
+                      className={`w-16 h-16 rounded-2xl font-bold text-3xl shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                        selectedOperation === op
+                          ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white ring-4 ring-green-300 scale-105'
+                          : 'bg-gradient-to-br from-purple-400 to-pink-500 text-white hover:from-purple-500 hover:to-pink-600'
+                      }`}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-900/40 border border-blue-300/30 rounded-2xl p-4 text-center text-purple-100">
+                💡 Combine any two numbers using the operators to climb toward the target. Every result replaces the two numbers you used in the rosace, just like in Mathador.
               </div>
             </div>
-          )}
 
-          {/* Feedback */}
-          {feedback && (
-            <div className={`text-center text-2xl font-bold mb-6 ${
-                feedback.includes('Excellent') || feedback.includes('🎉')
-                  ? 'text-green-300 animate-bounce'
-                  : 'text-red-300'
-              }`}
-            >
-              <p>{feedback}</p>
+            <div className="space-y-6">
+              <div className="bg-purple-900/40 border border-purple-300/30 rounded-2xl p-6">
+                <p className="text-sm uppercase tracking-widest text-purple-200 mb-3">Current calculation</p>
+                {selectedNum1 === null ? (
+                  <p className="text-purple-100 text-lg">Select a number from the rosace to get started.</p>
+                ) : (
+                  <p className="text-3xl font-bold text-white text-center">
+                    {selectedNum1}
+                    {selectedOperation && ` ${selectedOperation}`}
+                    {selectedNum2 !== null && ` ${selectedNum2}`}
+                    {selectedNum1 !== null && selectedNum2 !== null && selectedOperation &&
+                      ` = ${calculateResult(selectedNum1, selectedNum2, selectedOperation) ?? '❌'}`}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleCalculate}
+                  disabled={selectedNum1 === null || selectedNum2 === null || selectedOperation === null || !!feedback}
+                  className="flex-1 min-w-[140px] bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-bold shadow-xl transition-all text-lg"
+                >
+                  Calculate
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={currentResult === null || !!feedback}
+                  className="flex-1 min-w-[140px] bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-bold shadow-xl transition-all text-lg"
+                >
+                  Submit
+                </button>
+                <button
+                  onClick={handleReset}
+                  disabled={calculationHistory.length === 0 || !!feedback}
+                  className="min-w-[140px] bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-bold shadow-xl transition-all text-lg"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="bg-purple-900/40 border border-purple-300/30 rounded-2xl p-6">
+                <p className="text-sm uppercase tracking-widest text-purple-200 mb-3">Your calculations</p>
+                {calculationHistory.length === 0 ? (
+                  <p className="text-purple-100 text-lg">Every operation you validate will appear here.</p>
+                ) : (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    {calculationHistory.map((step, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-2 text-lg text-purple-100">
+                        <span>
+                          {step.num1} {step.operation} {step.num2}
+                        </span>
+                        <span className="font-bold text-yellow-300">= {step.result}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {feedback && (
+                <div
+                  className={`text-center text-2xl font-bold rounded-2xl p-4 border ${
+                    feedback.includes('Excellent') || feedback.includes('🎉')
+                      ? 'text-green-300 border-green-300/50 bg-green-900/30 animate-bounce'
+                      : 'text-red-300 border-red-300/50 bg-red-900/30'
+                  }`}
+                >
+                  <p>{feedback}</p>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Instructions */}
-          <div className="bg-blue-900/50 rounded-xl p-4 border-2 border-blue-400/50">
-            <p className="text-purple-200 text-center">
-              💡 <strong>How to play:</strong> Select two numbers, choose an operation (+, -, ×, ÷), and click Calculate.
-              Keep combining numbers until you reach the target. Click Submit when you&apos;ve reached it!
-            </p>
           </div>
         </div>
       </div>
