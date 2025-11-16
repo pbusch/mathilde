@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -13,19 +13,43 @@ interface Challenge {
 const operations = ['+', '-', '×', '÷'] as const;
 type Operation = typeof operations[number];
 
-interface CalculationStep {
-  num1: number;
-  num2: number;
-  operation: Operation;
-  result: number;
-}
-
 interface CalculationSlot {
   num1: number | null;
   operation: Operation | null;
   num2: number | null;
   result: number | null;
 }
+
+interface NumberToken {
+  id: string;
+  value: number;
+}
+
+const createToken = (value: number): NumberToken => ({
+  id:
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`,
+  value,
+});
+
+const buildTokens = (values: number[]) => values.map((value) => createToken(value));
+
+const calculateResult = (num1: number, num2: number, op: Operation): number | null => {
+  switch (op) {
+    case '+':
+      return num1 + num2;
+    case '-':
+      return num1 - num2;
+    case '×':
+      return num1 * num2;
+    case '÷':
+      if (num2 === 0 || num1 % num2 !== 0) return null;
+      return num1 / num2;
+    default:
+      return null;
+  }
+};
 
 const generateChallenge = (level: number): Challenge => {
   let numbers: number[];
@@ -57,9 +81,9 @@ const NumberTargetGame = () => {
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [currentChallenge, setCurrentChallenge] = useState<Challenge>(() => generateChallenge(1));
-  const [availableNumbers, setAvailableNumbers] = useState<number[]>(() => currentChallenge.numbers);
-  const [selectedNum1, setSelectedNum1] = useState<number | null>(null);
-  const [selectedNum2, setSelectedNum2] = useState<number | null>(null);
+  const [availableNumbers, setAvailableNumbers] = useState<NumberToken[]>(() => buildTokens(currentChallenge.numbers));
+  const [selectedNum1, setSelectedNum1] = useState<NumberToken | null>(null);
+  const [selectedNum2, setSelectedNum2] = useState<NumberToken | null>(null);
   const [selectedOperation, setSelectedOperation] = useState<Operation | null>(null);
   const [calculationSlots, setCalculationSlots] = useState<CalculationSlot[]>([
     { num1: null, operation: null, num2: null, result: null },
@@ -84,7 +108,7 @@ const NumberTargetGame = () => {
     }))
   );
 
-  const completeIsland = async (finalScore: number) => {
+  const completeIsland = useCallback(async (finalScore: number) => {
     setSavingProgress(true);
     try {
       const response = await fetch('/api/progress/update', {
@@ -107,21 +131,35 @@ const NumberTargetGame = () => {
     } finally {
       setSavingProgress(false);
     }
-  };
+  }, [router]);
 
-  const handleNumberClick = (num: number) => {
+  const handleNumberClick = (token: NumberToken) => {
     if (feedback) return;
 
-    if (selectedNum1 === null) {
-      setSelectedNum1(num);
-    } else if (selectedNum2 === null && num !== selectedNum1) {
-      setSelectedNum2(num);
-    } else if (selectedNum1 === num) {
+    if (selectedNum1 && token.id === selectedNum1.id) {
       setSelectedNum1(null);
       setSelectedOperation(null);
-    } else if (selectedNum2 === num) {
-      setSelectedNum2(null);
+      return;
     }
+
+    if (selectedNum2 && token.id === selectedNum2.id) {
+      setSelectedNum2(null);
+      return;
+    }
+
+    if (selectedNum1 === null) {
+      setSelectedNum1(token);
+      return;
+    }
+
+    if (selectedNum2 === null) {
+      setSelectedNum2(token);
+      return;
+    }
+
+    setSelectedNum1(token);
+    setSelectedNum2(null);
+    setSelectedOperation(null);
   };
 
   const handleOperationClick = (op: Operation) => {
@@ -131,88 +169,25 @@ const NumberTargetGame = () => {
     }
   };
 
-  const calculateResult = (num1: number, num2: number, op: Operation): number | null => {
-    switch (op) {
-      case '+':
-        return num1 + num2;
-      case '-':
-        return num1 - num2;
-      case '×':
-        return num1 * num2;
-      case '÷':
-        // Only allow division if result is a whole number
-        if (num2 === 0 || num1 % num2 !== 0) return null;
-        return num1 / num2;
-      default:
-        return null;
-    }
-  };
-
-  const handleCalculate = () => {
-    if (selectedNum1 === null || selectedNum2 === null || selectedOperation === null) return;
-    if (currentSlotIndex >= calculationSlots.length) return;
-
-    const result = calculateResult(selectedNum1, selectedNum2, selectedOperation);
-
-    if (result === null) {
-      setFeedback('❌ Invalid operation! Division must result in a whole number.');
-      setTimeout(() => setFeedback(''), 2000);
-      return;
-    }
-
-    // Update the current calculation slot
-    const newSlots = [...calculationSlots];
-    newSlots[currentSlotIndex] = {
-      num1: selectedNum1,
-      operation: selectedOperation,
-      num2: selectedNum2,
-      result,
-    };
-    setCalculationSlots(newSlots);
-
-    // Remove used numbers and add result
-    const newAvailable = availableNumbers.filter(
-      (n, idx) => {
-        const firstIdx = availableNumbers.indexOf(selectedNum1);
-        const secondIdx = availableNumbers.indexOf(selectedNum2, firstIdx + 1);
-        return idx !== firstIdx && idx !== secondIdx;
-      }
-    );
-    newAvailable.push(result);
-    setAvailableNumbers(newAvailable);
-
-    // Reset selection
-    setSelectedNum1(null);
-    setSelectedNum2(null);
-    setSelectedOperation(null);
-
-    // Move to next slot
-    setCurrentSlotIndex(currentSlotIndex + 1);
-
-    // Check if target reached
-    if (result === currentChallenge.target) {
-      checkWin();
-    }
-  };
-
-  const checkWin = () => {
+  const checkWin = useCallback(() => {
     setAttempts(attempts + 1);
     const stepsUsed = calculationSlots.filter(slot => slot.result !== null).length;
     const points = Math.max(200 - stepsUsed * 30, 100);
-    setScore(score + points);
+    const updatedScore = score + points;
+    setScore(updatedScore);
     setFeedback(`🎉 Excellent! You reached ${currentChallenge.target}!`);
     setShowCelebration(true);
 
     setTimeout(() => {
       if (level >= COMPLETION_LEVEL) {
         setGameCompleted(true);
-        completeIsland(score + points);
+        completeIsland(updatedScore);
       } else {
         const nextLevel = level + 1;
         const newChallenge = generateChallenge(nextLevel);
         setLevel(nextLevel);
         setCurrentChallenge(newChallenge);
-        setAvailableNumbers(newChallenge.numbers);
+        setAvailableNumbers(buildTokens(newChallenge.numbers));
         setCalculationSlots([
           { num1: null, operation: null, num2: null, result: null },
           { num1: null, operation: null, num2: null, result: null },
@@ -228,11 +203,11 @@ const NumberTargetGame = () => {
         setAttempts(0);
       }
     }, 2500);
-  };
+  }, [attempts, calculationSlots, score, currentChallenge.target, level, COMPLETION_LEVEL, completeIsland]);
 
   const handleSubmit = () => {
     // Check if target is in available numbers
-    if (availableNumbers.includes(currentChallenge.target)) {
+    if (availableNumbers.some((token) => token.value === currentChallenge.target)) {
       checkWin();
     } else {
       setFeedback('❌ Not quite! Keep calculating to reach the target.');
@@ -241,7 +216,7 @@ const NumberTargetGame = () => {
   };
 
   const handleReset = () => {
-    setAvailableNumbers(currentChallenge.numbers);
+    setAvailableNumbers(buildTokens(currentChallenge.numbers));
     setCalculationSlots([
       { num1: null, operation: null, num2: null, result: null },
       { num1: null, operation: null, num2: null, result: null },
@@ -260,7 +235,7 @@ const NumberTargetGame = () => {
     setLevel(1);
     setScore(0);
     setCurrentChallenge(newChallenge);
-    setAvailableNumbers(newChallenge.numbers);
+    setAvailableNumbers(buildTokens(newChallenge.numbers));
     setCalculationSlots([
       { num1: null, operation: null, num2: null, result: null },
       { num1: null, operation: null, num2: null, result: null },
@@ -276,6 +251,71 @@ const NumberTargetGame = () => {
     setShowCelebration(false);
     setAttempts(0);
   };
+
+  const pendingExpression = selectedNum1
+    ? `${selectedNum1.value}${selectedOperation ? ` ${selectedOperation}` : ''}${
+        selectedNum2 ? ` ${selectedNum2.value}` : ''
+      }`
+    : 'Choose two numbers';
+  const pendingResultValue =
+    selectedNum1 && selectedNum2 && selectedOperation
+      ? calculateResult(selectedNum1.value, selectedNum2.value, selectedOperation)
+      : null;
+  const canSubmit =
+    availableNumbers.some((token) => token.value === currentChallenge.target) && !feedback;
+  const totalSlots = calculationSlots.length;
+
+  useEffect(() => {
+    if (!selectedNum1 || !selectedNum2 || !selectedOperation) return;
+    if (feedback) return;
+    if (currentSlotIndex >= totalSlots) return;
+
+    const result = calculateResult(selectedNum1.value, selectedNum2.value, selectedOperation);
+
+    if (result === null || result <= 0) {
+      setFeedback('❌ Result must be a positive whole number.');
+      setSelectedNum2(null);
+      setSelectedOperation(null);
+      const timeout = setTimeout(() => setFeedback(''), 2000);
+      return () => clearTimeout(timeout);
+    }
+
+    setCalculationSlots((prev) => {
+      const updated = [...prev];
+      updated[currentSlotIndex] = {
+        num1: selectedNum1.value,
+        operation: selectedOperation,
+        num2: selectedNum2.value,
+        result,
+      };
+      return updated;
+    });
+
+    setAvailableNumbers((prev) => {
+      const filtered = prev.filter(
+        (token) => token.id !== selectedNum1.id && token.id !== selectedNum2.id
+      );
+      return [...filtered, createToken(result)];
+    });
+
+    setSelectedNum1(null);
+    setSelectedNum2(null);
+    setSelectedOperation(null);
+    setCurrentSlotIndex((prev) => prev + 1);
+
+    if (result === currentChallenge.target) {
+      checkWin();
+    }
+  }, [
+    selectedNum1,
+    selectedNum2,
+    selectedOperation,
+    feedback,
+    currentSlotIndex,
+    totalSlots,
+    currentChallenge.target,
+    checkWin,
+  ]);
 
   if (gameCompleted) {
     return (
@@ -364,244 +404,242 @@ const NumberTargetGame = () => {
         </div>
       )}
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div className="relative z-10 container mx-auto px-4 py-10 space-y-8 max-w-7xl">
+        <div className="flex flex-wrap items-center justify-between gap-6">
           <div>
-            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 mb-2 drop-shadow-lg">
-              🎯 Number Target
+            <p className="text-sm uppercase tracking-[0.5em] text-purple-200/80">
+              Mathador-inspired challenge
+            </p>
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-pink-200 to-yellow-200 drop-shadow-lg">
+              Number Target Lab
             </h1>
-            <p className="text-purple-200 text-lg">Use the numbers to reach the target!</p>
+            <p className="text-purple-100/80 mt-2 max-w-2xl">
+              Combine the five tool numbers directly along the tool line. Every calculation sends its result back
+              into the lineup—just like in the real Mathador game.
+            </p>
           </div>
           <Link
             href="/"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
           >
             ← Back to Islands
           </Link>
         </div>
 
-        {/* Stats Bar */}
-        <div className="flex justify-between items-center mb-8 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-          <div className="flex gap-8">
-            <div>
-              <p className="text-purple-200 text-sm">Level</p>
-              <p className="text-4xl font-bold text-yellow-300">{level}/10</p>
-            </div>
-            <div>
-              <p className="text-purple-200 text-sm">Score</p>
-              <p className="text-4xl font-bold text-green-300">{score}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Game Area - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Left Column - Rosace/Octagon with Numbers */}
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
-            <div className="flex flex-col items-center justify-center min-h-[600px]">
-              {/* Octagonal Number Display */}
-              <div className="relative w-96 h-96 mb-8">
-                {/* Center Target */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                  <div className="bg-gradient-to-br from-yellow-400 to-orange-500 w-32 h-32 rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
-                    <span className="text-5xl font-bold text-white">{currentChallenge.target}</span>
-                  </div>
-                </div>
-
-                {/* Octagonal segments with numbers */}
-                {availableNumbers.map((num, idx) => {
-                  const angle = (idx * 360) / availableNumbers.length - 90;
-                  const radius = 140;
-                  const x = Math.cos((angle * Math.PI) / 180) * radius;
-                  const y = Math.sin((angle * Math.PI) / 180) * radius;
-                  
-                  const isSelected = selectedNum1 === num || selectedNum2 === num;
-                  
-                  return (
-                    <button
-                      key={`${num}-${idx}`}
-                      onClick={() => handleNumberClick(num)}
-                      disabled={!!feedback}
-                      className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-xl font-bold text-2xl transition-all shadow-lg hover:scale-110 disabled:cursor-not-allowed ${
-                        isSelected
-                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400 text-white scale-110 ring-4 ring-yellow-300 z-20'
-                          : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
-                      }`}
-                      style={{
-                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                      }}
-                    >
-                      {num}
-                    </button>
-                  );
-                })}
-
-                {/* Decorative octagon outline */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 400">
-                  <polygon
-                    points="200,40 280,90 330,170 330,230 280,310 200,360 120,310 70,230 70,170 120,90"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="3"
-                    strokeDasharray="10,5"
-                  />
-                </svg>
+        <div className="grid gap-8 xl:grid-cols-[420px,1fr]">
+          {/* Tool line */}
+          <section className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 p-8 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between text-purple-100 uppercase tracking-wide text-xs">
+              <div>
+                <p className="text-purple-200/70">Level</p>
+                <p className="text-3xl font-black text-yellow-300">{level}/10</p>
               </div>
+              <div>
+                <p className="text-purple-200/70">Score</p>
+                <p className="text-3xl font-black text-green-300">{score}</p>
+              </div>
+            </div>
 
-              {/* Operation Buttons */}
-              <div className="flex gap-3 mb-6">
-                {operations.map((op, idx) => {
-                  const colors = [
-                    'from-cyan-400 to-blue-500',
-                    'from-green-400 to-emerald-500', 
-                    'from-pink-400 to-red-500',
-                    'from-yellow-400 to-orange-500'
-                  ];
-                  
-                  return (
-                    <button
-                      key={op}
-                      onClick={() => handleOperationClick(op)}
-                      disabled={selectedNum1 === null || !!feedback}
-                      className={`w-16 h-16 rounded-xl font-bold text-3xl transition-all shadow-lg hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed ${
-                        selectedOperation === op
-                          ? `bg-gradient-to-br ${colors[idx]} text-white scale-110 ring-4 ring-white`
-                          : `bg-gradient-to-br ${colors[idx]} text-white hover:scale-105`
+            <div className="mt-8 flex flex-col items-center gap-6">
+              <div className="relative w-full max-w-[420px] h-32">
+                <div className="absolute left-6 right-6 top-1/2 h-1 bg-white/15 rounded-full"></div>
+                <div className="absolute inset-0 flex items-center justify-evenly gap-3 px-4">
+                  {availableNumbers.map((token) => {
+                    const isSelected =
+                      selectedNum1?.id === token.id || selectedNum2?.id === token.id;
+                    return (
+                      <button
+                        key={token.id}
+                        onClick={() => handleNumberClick(token)}
+                        disabled={!!feedback}
+                        className={`w-20 h-20 rounded-2xl border-2 font-extrabold text-3xl shadow-lg transition-all ${
+                          isSelected
+                            ? 'bg-gradient-to-br from-yellow-300 to-orange-500 text-gray-900 border-yellow-100 scale-110'
+                            : 'bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-white/20 hover:scale-105'
+                        } ${feedback ? 'cursor-not-allowed opacity-80' : ''}`}
+                      >
+                        {token.value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="w-40 h-40 rounded-full border-4 border-yellow-200 bg-gradient-to-br from-yellow-400 to-orange-500 shadow-2xl flex flex-col items-center justify-center text-center text-white">
+                <span className="text-[0.5rem] uppercase tracking-[0.5em] text-white/80">
+                  Target
+                </span>
+                <span className="text-6xl font-black">{currentChallenge.target}</span>
+              </div>
+            </div>
+            <p className="text-center text-sm text-purple-100 mt-4">
+              Les outils restent alignés sur la ligne horizontale et se mettent à jour après chaque calcul validé.
+            </p>
+
+            <div className="mt-6 bg-purple-900/40 border border-white/15 rounded-2xl p-5">
+              <p className="text-xs uppercase tracking-wide text-purple-200/70 mb-2">
+                Current attempt
+              </p>
+              <p className="text-4xl font-bold text-white flex flex-wrap items-center gap-2">
+                {pendingExpression}
+                {selectedNum1 && selectedNum2 && selectedOperation && (
+                  <>
+                    <span className="text-3xl text-purple-200">=</span>
+                    <span
+                      className={`px-3 py-1 rounded-xl ${
+                        pendingResultValue !== null
+                          ? 'bg-green-500/30 text-green-100'
+                          : 'bg-red-500/30 text-red-100'
                       }`}
                     >
-                      {op}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Current Selection Display */}
-              {selectedNum1 !== null && (
-                <div className="bg-purple-900/50 rounded-2xl p-4 mb-4 border-2 border-purple-400/50 w-full">
-                  <p className="text-center text-2xl font-bold text-white">
-                    {selectedNum1}
-                    {selectedOperation && ` ${selectedOperation}`}
-                    {selectedNum2 !== null && ` ${selectedNum2}`}
-                    {selectedNum1 !== null && selectedNum2 !== null && selectedOperation &&
-                      ` = ${calculateResult(selectedNum1, selectedNum2, selectedOperation) ?? '❌'}`}
-                  </p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCalculate}
-                  disabled={selectedNum1 === null || selectedNum2 === null || selectedOperation === null || !!feedback}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
-                >
-                  Calculate
-                </button>
-                <button
-                  onClick={handleReset}
-                  disabled={currentSlotIndex === 0 || !!feedback}
-                  className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-bold shadow-xl transition-all transform hover:scale-105"
-                >
-                  Reset 🔄
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Calculation Slots */}
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
-            <h2 className="text-2xl font-bold text-purple-200 mb-6 text-center">Calculations</h2>
-            
-            <div className="space-y-6">
-              {calculationSlots.map((slot, idx) => (
-                <div 
-                  key={idx}
-                  className={`flex items-center justify-center gap-4 p-4 rounded-2xl border-2 transition-all ${
-                    idx === currentSlotIndex && !feedback
-                      ? 'bg-purple-600/30 border-purple-400 scale-105'
-                      : 'bg-purple-900/30 border-purple-600/50'
-                  }`}
-                >
-                  {/* First Number Diamond */}
-                  <div className="relative w-20 h-20">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 transform rotate-45 rounded-lg shadow-lg"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white z-10">
-                        {slot.num1 ?? '?'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Operation Circle */}
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg">
-                    <span className="text-2xl font-bold text-white">
-                      {slot.operation ?? '?'}
+                      {pendingResultValue ?? 'whole number required'}
                     </span>
-                  </div>
-
-                  {/* Second Number Diamond */}
-                  <div className="relative w-20 h-20">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 transform rotate-45 rounded-lg shadow-lg"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white z-10">
-                        {slot.num2 ?? '?'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Equals Sign */}
-                  <span className="text-3xl font-bold text-purple-300">=</span>
-
-                  {/* Result Diamond */}
-                  <div className="relative w-20 h-20">
-                    <div className={`absolute inset-0 transform rotate-45 rounded-lg shadow-lg ${
-                      slot.result !== null 
-                        ? 'bg-gradient-to-br from-green-400 to-emerald-500' 
-                        : 'bg-gradient-to-br from-gray-400 to-gray-500'
-                    }`}></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white z-10">
-                        {slot.result ?? '?'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </>
+                )}
+              </p>
+              <p className="text-sm text-purple-200/80 mt-2">
+                Pick two tool numbers and an operation to preview the result—valid positive results are applied automatically.
+              </p>
             </div>
 
-            {/* Submit Button */}
-            <div className="mt-8 flex justify-center">
+            <div className="mt-6 flex flex-wrap gap-3 justify-center">
+              {operations.map((op, idx) => {
+                const colors = [
+                  'from-cyan-400 to-blue-500',
+                  'from-green-400 to-emerald-500',
+                  'from-pink-400 to-rose-500',
+                  'from-amber-300 to-orange-500',
+                ];
+                return (
+                  <button
+                    key={op}
+                    onClick={() => handleOperationClick(op)}
+                    disabled={selectedNum1 === null || !!feedback}
+                    className={`w-16 h-16 rounded-2xl font-bold text-3xl transition-all shadow-lg border-2 border-white/20 ${
+                      selectedOperation === op
+                        ? `bg-gradient-to-br ${colors[idx]} text-white scale-110 ring-4 ring-white/60`
+                        : `bg-gradient-to-br ${colors[idx]} text-white/90 hover:scale-105`
+                    } disabled:opacity-40 disabled:cursor-not-allowed`}
+                  >
+                    {op}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <p className="text-sm text-purple-100 text-center">
+                ✅ Every valid positive result is stored automatically. Use reset if you want to try a different plan.
+              </p>
               <button
-                onClick={handleSubmit}
-                disabled={!availableNumbers.includes(currentChallenge.target) || !!feedback}
-                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl transition-all transform hover:scale-105"
+                onClick={handleReset}
+                className="px-8 py-3 rounded-full font-semibold text-lg bg-white/10 text-white border border-white/30 hover:bg-white/20 transition-all"
               >
-                Submit Answer ✓
+                Reset Round
               </button>
             </div>
+          </section>
 
-            {/* Feedback */}
+          {/* Calculation timeline */}
+          <section className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 p-8 shadow-2xl flex flex-col">
+            <div className="flex flex-wrap gap-6 justify-between text-purple-100 text-sm uppercase tracking-wide">
+              <div>
+                <p className="text-purple-200/70">Attempts</p>
+                <p className="text-3xl font-black">{attempts}</p>
+              </div>
+              <div>
+                <p className="text-purple-200/70">Steps used</p>
+                <p className="text-3xl font-black">
+                  {calculationSlots.filter((slot) => slot.result !== null).length}/4
+                </p>
+              </div>
+              <div>
+                <p className="text-purple-200/70">Tools left</p>
+                <p className="text-3xl font-black">
+                  {availableNumbers.length}{' '}
+                  {availableNumbers.length === 1 ? 'number' : 'numbers'}
+                </p>
+              </div>
+            </div>
+
+            <h2 className="text-3xl font-bold text-white mt-8">Calculation timeline</h2>
+            <p className="text-purple-200/80 text-sm mt-1">
+              The right column mirrors the Mathador notebook: follow each calculation and reuse the resulting
+              number directly on the tool line.
+            </p>
+
+            <div className="mt-6 space-y-4 flex-1 w-full">
+              {calculationSlots.map((slot, idx) => {
+                const isActive = idx === currentSlotIndex && !feedback;
+                const expressionReady =
+                  slot.num1 !== null && slot.num2 !== null && slot.operation !== null;
+                return (
+                  <div
+                    key={idx}
+                    className={`rounded-2xl border-2 p-5 transition-all ${
+                      slot.result !== null
+                        ? 'border-emerald-400/60 bg-emerald-400/10'
+                        : isActive
+                        ? 'border-purple-300 bg-purple-300/10'
+                        : 'border-white/20 bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-purple-100/80">
+                      <span>Step {idx + 1}</span>
+                      <span>
+                        {slot.result !== null ? 'Completed' : isActive ? 'Ready' : 'Pending'}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-3xl font-bold text-white flex flex-wrap items-center gap-2">
+                      <span>{slot.num1 ?? '...'}</span>
+                      <span className="text-purple-300">{slot.operation ?? '?'}</span>
+                      <span>{slot.num2 ?? '...'}</span>
+                      <span className="text-purple-300">=</span>
+                      <span>{slot.result ?? '...'}</span>
+                    </div>
+                    <p className="text-sm text-purple-200/80 mt-2">
+                      {slot.result !== null
+                        ? 'Use this new number just like any other tool.'
+                        : expressionReady
+                        ? 'Tap “Validate Step” to confirm this operation.'
+                        : 'Pick two numbers from the tool line to feed this step.'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-4 items-center">
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-8 py-4 rounded-2xl font-semibold text-xl shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Submit Target
+              </button>
+              <div className="px-5 py-4 rounded-2xl bg-purple-900/30 border border-purple-500/40 text-center">
+                <p className="text-xs uppercase tracking-wide text-purple-200/70">Goal</p>
+                <p className="text-3xl font-black text-white">{currentChallenge.target}</p>
+              </div>
+            </div>
+
             {feedback && (
-              <div className={`text-center text-2xl font-bold mt-6 ${
+              <div
+                className={`mt-4 text-center text-2xl font-bold ${
                   feedback.includes('Excellent') || feedback.includes('🎉')
-                    ? 'text-green-300 animate-bounce'
+                    ? 'text-green-300'
                     : 'text-red-300'
                 }`}
               >
-                <p>{feedback}</p>
+                {feedback}
               </div>
             )}
 
-            {/* Instructions */}
-            <div className="mt-8 bg-blue-900/50 rounded-xl p-4 border-2 border-blue-400/50">
-              <p className="text-purple-200 text-sm text-center">
-                💡 <strong>How to play:</strong> Click numbers from the rosace, choose an operation, and calculate. 
-                The result appears in the calculation slots and returns to the rosace. 
-                Reach the target number to win!
+            <div className="mt-6 bg-blue-900/40 rounded-2xl p-5 border border-blue-400/30 text-purple-100 text-sm">
+              <p>
+                💡 Click two numbers from the horizontal tool line, choose an operation, and let the game auto-confirm every positive whole result. Each validated number replaces the tools you just used. Chain up to four steps to land exactly on the target—just like in Mathador/Number Target!
               </p>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
