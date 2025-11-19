@@ -1,6 +1,6 @@
 'use client';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useRouter } from 'next/navigation';
 import { useRef, useEffect, useState } from 'react';
@@ -11,6 +11,7 @@ interface IslandProps {
   islandNumber: number;
   isAccessible: boolean;
   onClick?: () => void;
+  progress?: { completed: boolean; score: number };
 }
 
 // Palm Tree component
@@ -57,9 +58,54 @@ function Rock({ position, scale = 1 }: { position: [number, number, number], sca
 }
 
 // Tower component for island center
-function Tower({ isAccessible, islandNumber }: { isAccessible: boolean, islandNumber: number }) {
+function Tower({
+  isAccessible,
+  islandNumber,
+  progress,
+}: {
+  isAccessible: boolean;
+  islandNumber: number;
+  progress?: { completed: boolean; score: number };
+}) {
   const colors = ['#DC143C', '#FF69B4', '#4169E1', '#9370DB', '#FFD700'];
   const roofColor = colors[islandNumber - 1] || '#DC143C';
+  const sphereRef = useRef<THREE.Mesh>(null);
+
+  // Determine sphere status
+  let sphereStatus: 'completed' | 'in-progress' | 'not-started' | 'locked';
+  let sphereColor = '#A0A0A0'; // Grey for locked
+  let sphereEmissive = '#000000';
+  let sphereEmissiveIntensity = 0;
+
+  if (isAccessible) {
+    if (progress?.completed) {
+      sphereStatus = 'completed';
+      sphereColor = '#00FF00'; // Green
+      sphereEmissive = '#00FF00';
+      sphereEmissiveIntensity = 0.4;
+    } else if (progress && progress.score > 0) {
+      sphereStatus = 'in-progress';
+      sphereColor = '#FFD700'; // Yellow
+      sphereEmissive = '#FFD700';
+      sphereEmissiveIntensity = 0.6;
+    } else {
+      sphereStatus = 'not-started';
+      sphereColor = '#FFD700'; // Yellow
+      sphereEmissive = '#FFD700';
+    }
+  } else {
+    sphereStatus = 'locked';
+  }
+
+  // Blinking effect for 'not-started' islands
+  useFrame(({ clock }) => {
+    if (sphereStatus === 'not-started' && sphereRef.current) {
+      const material = sphereRef.current.material as THREE.MeshStandardMaterial;
+      // Create a blinking effect by checking if the time is in an even or odd second
+      const blink = Math.floor(clock.getElapsedTime() * 2) % 2 === 0;
+      material.emissiveIntensity = blink ? 1.2 : 0.2;
+    }
+  });
 
   return (
     <group position={[0, 0.8, 0]}>
@@ -81,12 +127,12 @@ function Tower({ isAccessible, islandNumber }: { isAccessible: boolean, islandNu
       </mesh>
 
       {/* Number sphere */}
-      <mesh position={[0, 0.9, 0]}>
+      <mesh ref={sphereRef} position={[0, 0.9, 0]}>
         <sphereGeometry args={[0.2, 32, 32]} />
         <meshStandardMaterial
-          color={isAccessible ? '#FFD700' : '#A0A0A0'}
-          emissive={isAccessible ? '#FFD700' : '#000000'}
-          emissiveIntensity={isAccessible ? 0.6 : 0}
+          color={sphereColor}
+          emissive={sphereEmissive}
+          emissiveIntensity={sphereEmissiveIntensity}
           metalness={0.3}
         />
       </mesh>
@@ -95,13 +141,25 @@ function Tower({ isAccessible, islandNumber }: { isAccessible: boolean, islandNu
 }
 
 // Enhanced Island with multiple terrain layers
-function Island({ position, islandNumber, isAccessible, onClick }: IslandProps) {
+function Island({ position, islandNumber, isAccessible, onClick, progress }: IslandProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const baseColor = isAccessible ? '#7CFC00' : '#8B8B83';
   const beachColor = '#F4A460';
 
   return (
-    <group position={position}>
+    <group
+      position={position}
+      onClick={isAccessible ? onClick : undefined}
+      onPointerOver={(e) => {
+        if (isAccessible) {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'default';
+      }}
+    >
       {/* Wooden platform base */}
       <mesh position={[0, -0.35, 0]} rotation={[0, 0, 0]}>
         <cylinderGeometry args={[1.8, 1.85, 0.15, 32]} />
@@ -115,19 +173,7 @@ function Island({ position, islandNumber, isAccessible, onClick }: IslandProps) 
       </mesh>
 
       {/* Bottom grass layer */}
-      <mesh
-        ref={meshRef}
-        position={[0, -0.1, 0]}
-        onClick={isAccessible ? onClick : undefined}
-        onPointerOver={(e) => {
-          if (isAccessible) {
-            document.body.style.cursor = 'pointer';
-          }
-        }}
-        onPointerOut={() => {
-          document.body.style.cursor = 'default';
-        }}
-      >
+      <mesh ref={meshRef} position={[0, -0.1, 0]}>
         <cylinderGeometry args={[1.2, 1.4, 0.25, 32]} />
         <meshStandardMaterial color={baseColor} roughness={0.6} />
       </mesh>
@@ -151,7 +197,7 @@ function Island({ position, islandNumber, isAccessible, onClick }: IslandProps) 
       </mesh>
 
       {/* Central tower */}
-      <Tower isAccessible={isAccessible} islandNumber={islandNumber} />
+      <Tower isAccessible={isAccessible} islandNumber={islandNumber} progress={progress} />
 
       {/* Palm trees */}
       {isAccessible && (
@@ -199,43 +245,90 @@ function Island({ position, islandNumber, isAccessible, onClick }: IslandProps) 
   );
 }
 
-// Enhanced path with bridge-like appearance
-function Path() {
+// Bridge component with railings and posts
+function BridgePath() {
   const points = [
-    new THREE.Vector3(-6, -0.1, 7),    // Island 1
-    new THREE.Vector3(-4.5, 0, 5.5),   // Curve point
-    new THREE.Vector3(-3, 0.1, 4),     // Island 2
-    new THREE.Vector3(-0.5, 0.05, 2.5),// Curve point
-    new THREE.Vector3(2, -0.05, 1),    // Island 3
-    new THREE.Vector3(3, 0.1, -0.5),   // Curve point
-    new THREE.Vector3(4, 0.2, -2),     // Island 4
-    new THREE.Vector3(2, 0.15, -3.5),  // Curve point
-    new THREE.Vector3(0, 0.05, -5),    // Island 5
+    new THREE.Vector3(-6, -0.1, 7),
+    new THREE.Vector3(-4.5, 0, 5.5),
+    new THREE.Vector3(-3, 0.1, 4),
+    new THREE.Vector3(-0.5, 0.05, 2.5),
+    new THREE.Vector3(2, -0.05, 1),
+    new THREE.Vector3(3, 0.1, -0.5),
+    new THREE.Vector3(4, 0.2, -2),
+    new THREE.Vector3(2, 0.15, -3.5),
+    new THREE.Vector3(0, 0.05, -5),
   ];
 
   const curve = new THREE.CatmullRomCurve3(points);
-  const tubeGeometry = new THREE.TubeGeometry(curve, 128, 0.2, 16, false);
+  const numPoints = 100;
+  const curvePoints = curve.getPoints(numPoints);
+
+  // Create a flat bridge path
+  const shape = new THREE.Shape();
+  const width = 0.4;
+  shape.moveTo(-width / 2, 0);
+  shape.lineTo(width / 2, 0);
+  shape.lineTo(width / 2, 0.05);
+  shape.lineTo(-width / 2, 0.05);
+  shape.lineTo(-width / 2, 0);
+
+  const extrudeSettings = {
+    steps: numPoints,
+    bevelEnabled: false,
+    extrudePath: curve,
+  };
+
+  const bridgeGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
   return (
     <group>
-      {/* Main path */}
-      <mesh geometry={tubeGeometry}>
-        <meshStandardMaterial
-          color="#D2691E"
-          roughness={0.8}
-          metalness={0.1}
-        />
+      {/* Bridge walkway */}
+      <mesh geometry={bridgeGeom}>
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
       </mesh>
 
-      {/* Decorative supports */}
-      {points.slice(0, -1).map((point, i) => {
-        const nextPoint = points[i + 1];
-        const midPoint = new THREE.Vector3().lerpVectors(point, nextPoint, 0.5);
+      {/* Bridge posts and ropes */}
+      {curvePoints.map((point, i) => {
+        if (i % 5 !== 0) return null; // Place a post every 5 points
+        const tangent = curve.getTangentAt(i / numPoints).normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+        const binormal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+        const postHeight = 0.4;
+        const postOffset = 0.25;
+
         return (
-          <mesh key={i} position={[midPoint.x, midPoint.y - 0.3, midPoint.z]}>
-            <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-            <meshStandardMaterial color="#8B4513" roughness={0.9} />
-          </mesh>
+          <group key={i} position={point}>
+            {[-1, 1].map((side) => (
+              <mesh key={side} position={binormal.clone().multiplyScalar(postOffset * side).add(new THREE.Vector3(0, postHeight / 2 - 0.05, 0))}>
+                <cylinderGeometry args={[0.04, 0.04, postHeight, 6]} />
+                <meshStandardMaterial color="#A0522D" roughness={0.9} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+      {[0.15, 0.3].map((ropeHeight) => {
+        const ropeCurve = new THREE.CatmullRomCurve3(curvePoints.map(p => p.clone().add(new THREE.Vector3(0, ropeHeight, 0))));
+        const ropeGeom = new THREE.TubeGeometry(ropeCurve, numPoints, 0.02, 8, false);
+        return (
+          <group key={ropeHeight}>
+            {[-1, 1].map((side) => {
+               const sideOffset = 0.25;
+               const ropeSideCurve = new THREE.CatmullRomCurve3(curvePoints.map(p => {
+                  const tangent = curve.getTangentAt(curvePoints.indexOf(p) / numPoints).normalize();
+                  const up = new THREE.Vector3(0, 1, 0);
+                  const binormal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+                  return p.clone().add(binormal.multiplyScalar(sideOffset * side)).add(new THREE.Vector3(0, ropeHeight, 0));
+               }));
+               const ropeSideGeom = new THREE.TubeGeometry(ropeSideCurve, numPoints, 0.02, 8, false);
+               return (
+                <mesh key={side} geometry={ropeSideGeom}>
+                    <meshStandardMaterial color="#DEB887" roughness={0.7} />
+                </mesh>
+               )
+            })}
+          </group>
         );
       })}
     </group>
@@ -270,6 +363,38 @@ function Ocean() {
   );
 }
 
+// Pine Tree component for mountains
+function PineTree({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Trunk */}
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.3, 6]} />
+        <meshStandardMaterial color="#654321" roughness={0.8} />
+      </mesh>
+      {/* Leaves */}
+      <mesh position={[0, 0.5, 0]}>
+        <coneGeometry args={[0.25, 0.5, 8]} />
+        <meshStandardMaterial color="#2E8B57" roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+// Snow cap for mountains
+function SnowCap({ position, radius, height }: { position: [number, number, number], radius: number, height: number }) {
+  return (
+    <mesh position={position}>
+      <coneGeometry args={[radius, height, 8]} />
+      <meshStandardMaterial
+        color="#FFFAFA"
+        roughness={0.8}
+        flatShading={true}
+      />
+    </mesh>
+  );
+}
+
 // Terrain backdrop bordering the sea
 function TerrainBackdrop() {
   // Create terrain segments around the perimeter
@@ -282,16 +407,25 @@ function TerrainBackdrop() {
   segments.push(
     <group key="back" position={[0, 0, -distance]}>
       {/* Main mountain range */}
-      {[-8, -4, 0, 4, 8].map((x, i) => (
-        <mesh key={i} position={[x, terrainHeight / 2 - 0.5, 0]}>
-          <coneGeometry args={[3 + Math.random(), terrainHeight + Math.random() * 2, 8]} />
-          <meshStandardMaterial
-            color="#8B7355"
-            roughness={0.9}
-            flatShading={true}
-          />
-        </mesh>
-      ))}
+      {[-8, -4, 0, 4, 8].map((x, i) => {
+        const mountainHeight = terrainHeight + Math.random() * 2;
+        const mountainRadius = 3 + Math.random();
+        const snowLine = mountainHeight * 0.6;
+        const snowCapHeight = mountainHeight - snowLine;
+        const snowCapRadius = mountainRadius * (snowCapHeight / mountainHeight);
+
+        return (
+          <group key={i} position={[x, -0.5, 0]}>
+            <mesh position={[0, mountainHeight / 2, 0]}>
+              <coneGeometry args={[mountainRadius, mountainHeight, 8]} />
+              <meshStandardMaterial color="#8B7355" roughness={0.9} flatShading={true} />
+            </mesh>
+            <SnowCap position={[0, snowLine + snowCapHeight / 2, 0]} radius={snowCapRadius} height={snowCapHeight} />
+            <PineTree position={[mountainRadius * 0.3, mountainHeight * 0.2, 1]} />
+            <PineTree position={[-mountainRadius * 0.4, mountainHeight * 0.3, 1.2]} />
+          </group>
+        );
+      })}
       {/* Lower hills */}
       {[-10, -6, -2, 2, 6, 10].map((x, i) => (
         <mesh key={`hill-${i}`} position={[x, 0.8, 1]}>
@@ -442,7 +576,15 @@ export default function GameBoard() {
   ];
 
   const handleIslandClick = (islandNumber: number) => {
-    router.push(`/island/${islandNumber}`);
+    // Play a sound effect on click
+    const clickSound = new Audio('/sounds/island-click.mp3');
+    clickSound.play().catch(error => {
+      // Autoplay can be blocked by the browser, log error if it happens
+      console.error("Error playing sound:", error);
+    });
+
+    // Navigate after a short delay to allow the sound to start playing
+    setTimeout(() => router.push(`/island/${islandNumber}`), 100);
   };
 
   // Determine which islands are accessible based on progress
@@ -559,18 +701,21 @@ export default function GameBoard() {
 
         {/* Scene elements */}
         <Ocean />
-        <Path />
+        <BridgePath />
 
         {/* Islands */}
         {islandPositions.map((pos, index) => (
-          <Island
-            key={index}
-            position={pos}
-            islandNumber={index + 1}
-            isAccessible={isIslandAccessible(index + 1)}
-            onClick={() => handleIslandClick(index + 1)}
-          />
-        ))}
+          (() => {
+            const islandNumber = index + 1;
+            return <Island
+              key={index}
+              position={pos}
+              islandNumber={islandNumber}
+              isAccessible={isIslandAccessible(islandNumber)}
+              onClick={() => handleIslandClick(islandNumber)}
+              progress={progress[islandNumber]}
+            />;
+          })()))}
       </Canvas>
     </div>
   );
